@@ -28,12 +28,38 @@
 ├── graphs/
 ├── CMakeLists.txt
 └── README.md
+```
 
-## BFS с построением дерева обхода (parent BFS)
+---
+## Представление графов
+
+### Классическая реализация (CSR)
+Граф хранится в компактном формате **CSR (Compressed Sparse Row)**:
+
+```c
+typedef struct ClassicGraph {
+    int n;           // Количество вершин
+    int *offsets;    // Префиксные суммы степеней (размер n + 1)
+    int *adj;        // Массив смежности (все рёбра подряд)
+} ClassicGraph;
+```
+* `offsets[i]` — индекс в массиве `adj`, с которого начинаются соседи вершины `i`.
+* `offsets[i+1] - offsets[i]` — степень вершины `i`.
+
+### Реализация на GraphBLAS
+* Используется булева разреженная матрица `GrB_Matrix` типа `GrB_BOOL`.
+* Матрица строится по списку рёбер (формат COO) с помощью функции `GrB_Matrix_setElement_BOOL`.
+---
+
+## Реализованные операции
+
+### BFS с построением дерева обхода (parent BFS)
 
 * **Классическая версия**:
-c
-### BFSResult* classic_bfs(int n, int* row_ptr, int* col_idx, int source);
+```c
+BFSResult* classic_bfs(int n, int* row_ptr, int* col_idx, int source);
+```
+
 Обход в ширину с очередью
 
 Возвращает BFSResult с полями:
@@ -46,8 +72,10 @@ visited_count — количество посещённых узлов
 
 * ** GraphBLAS версия**:
 
-c
-### int* graphblas_bfs(GraphBLASGraph* graph, int source, double* time_ms, int** level);
+```c
+int* graphblas_bfs(GraphBLASGraph* graph, int source, double* time_ms, int** level);
+```
+
 Итеративное умножение вектора фронта на матрицу смежности
 
 Возвращает массив parent (родителей) и через указатель level — массив уровней
@@ -58,8 +86,10 @@ c
 
 * **Классическая версия**:
 
-c
-### void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, int* sources, int num_sources, BFSResult* result);
+```c
+void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, int* sources, int num_sources, BFSResult* result);
+```
+
 Обычная очередь, но изначально в неё добавляются все источники
 
 Обход распространяется одновременно от всех источников
@@ -72,8 +102,10 @@ c
 
 * ** GraphBLAS версия**:
 
-c
-### int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sources, double* time_ms, int** level);
+```c
+int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sources, double* time_ms, int** level);
+```
+
 Вектор фронта инициализируется всеми источниками одновременно
 
 На каждой итерации выполняется умножение вектора фронта на матрицу смежности
