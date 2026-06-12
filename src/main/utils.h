@@ -11,9 +11,8 @@ typedef struct {
 } Timer;
 
 void timer_start(Timer* timer);
-double timer_elapsed_ms(Timer* timer);
 double timer_elapsed_us(Timer* timer);
-double timer_elapsed_seconds(Timer* timer);
+double timer_elapsed_ms(Timer* timer);
 
 int load_matrix_market(const char* filename, 
                         int** row_ptr, int** col_idx, double** values,

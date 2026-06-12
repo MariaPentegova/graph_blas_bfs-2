@@ -6,20 +6,6 @@ void timer_start(Timer* timer) {
     gettimeofday(&timer->start, NULL);
 }
 
-double timer_elapsed_ns(Timer* timer) {
-    gettimeofday(&timer->end, NULL);
-    double elapsed = (timer->end.tv_sec - timer->start.tv_sec) * 1000000000.0;
-    elapsed += (timer->end.tv_usec - timer->start.tv_usec) * 1000.0;
-    return elapsed;
-}
-
-double timer_elapsed_ms(Timer* timer) {
-    gettimeofday(&timer->end, NULL);
-    double elapsed = (timer->end.tv_sec - timer->start.tv_sec) * 1000.0;
-    elapsed += (timer->end.tv_usec - timer->start.tv_usec) / 1000.0;
-    return elapsed;
-}
-
 double timer_elapsed_us(Timer* timer) {
     gettimeofday(&timer->end, NULL);
     double elapsed = (timer->end.tv_sec - timer->start.tv_sec) * 1000000.0;
@@ -27,10 +13,10 @@ double timer_elapsed_us(Timer* timer) {
     return elapsed;
 }
 
-double timer_elapsed_seconds(Timer* timer) {
+double timer_elapsed_ms(Timer* timer) {
     gettimeofday(&timer->end, NULL);
-    double elapsed = (timer->end.tv_sec - timer->start.tv_sec);
-    elapsed += (timer->end.tv_usec - timer->start.tv_usec) / 1000000.0;
+    double elapsed = (timer->end.tv_sec - timer->start.tv_sec) * 1000.0;
+    elapsed += (timer->end.tv_usec - timer->start.tv_usec) / 1000.0;
     return elapsed;
 }
 
@@ -43,9 +29,14 @@ int load_matrix_market(const char* filename,
     char line[1024];
     int rows = 0, cols = 0, nonzeros = 0;
     int header_read = 0;
+    int is_symmetric = 0;
     
+    // Чтение заголовка
     while (fgets(line, sizeof(line), f)) {
-        if (line[0] == '%') continue;
+        if (line[0] == '%') {
+            if (strstr(line, "symmetric")) is_symmetric = 1;
+            continue;
+        }
         if (!header_read) {
             if (sscanf(line, "%d %d %d", &rows, &cols, &nonzeros) == 3) {
                 *n = rows;
@@ -61,6 +52,7 @@ int load_matrix_market(const char* filename,
         return -2;
     }
     
+    // Временное хранение
     int* temp_row = (int*)malloc(nonzeros * sizeof(int));
     int* temp_col = (int*)malloc(nonzeros * sizeof(int));
     
@@ -90,15 +82,29 @@ int load_matrix_market(const char* filename,
     }
     fclose(f);
     
+    // Для симметричных графов удваиваем количество рёбер
+    int total_nnz = nonzeros;
+    if (is_symmetric) {
+        total_nnz = 0;
+        for (int i = 0; i < nonzeros; i++) {
+            total_nnz++;
+            if (temp_row[i] != temp_col[i]) total_nnz++;
+        }
+    }
+    
+    // Построение CSR
     *row_ptr = (int*)calloc(rows + 1, sizeof(int));
     for (int i = 0; i < nonzeros; i++) {
         (*row_ptr)[temp_row[i] + 1]++;
+        if (is_symmetric && temp_row[i] != temp_col[i]) {
+            (*row_ptr)[temp_col[i] + 1]++;
+        }
     }
     for (int i = 1; i <= rows; i++) {
         (*row_ptr)[i] += (*row_ptr)[i - 1];
     }
     
-    *col_idx = (int*)malloc(nonzeros * sizeof(int));
+    *col_idx = (int*)malloc(total_nnz * sizeof(int));
     *values = NULL;
     
     int* pos = (int*)malloc(rows * sizeof(int));
@@ -106,7 +112,11 @@ int load_matrix_market(const char* filename,
     
     for (int i = 0; i < nonzeros; i++) {
         int r = temp_row[i];
-        (*col_idx)[pos[r]++] = temp_col[i];
+        int c = temp_col[i];
+        (*col_idx)[pos[r]++] = c;
+        if (is_symmetric && r != c) {
+            (*col_idx)[pos[c]++] = r;
+        }
     }
     
     free(pos);
