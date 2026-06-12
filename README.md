@@ -263,6 +263,7 @@ for i in {1..10}; do
     ./bfs_analysis ../graphs/kron_g500-logn16.mtx 36114 >> results.txt
     echo "" >> results.txt
 done
+```
 
 >  **Скачивание графов:** Если необходимые графы отсутствуют в локальной директории `graphs/`, вы можете загрузить их напрямую из репозитория [SuiteSparse Matrix Collection](https://sparse.tamu.edu/).
 
