@@ -4,11 +4,31 @@ project(GraphBFS VERSION 1.0.0)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Find SuiteSparse GraphBLAS
-find_package(SuiteSparse REQUIRED COMPONENTS GraphBLAS)
+# Поиск GraphBLAS
+find_path(GRAPHBLAS_INCLUDE_DIR
+    NAMES GraphBLAS.h
+    PATHS /usr/local/include/suitesparse /usr/include/suitesparse /usr/local/include /usr/include
+    PATH_SUFFIXES suitesparse
+)
+
+find_library(GRAPHBLAS_LIBRARY
+    NAMES graphblas libgraphblas
+    PATHS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu
+)
+
+if(NOT GRAPHBLAS_INCLUDE_DIR)
+    message(FATAL_ERROR "Could not find GraphBLAS.h")
+endif()
+
+if(NOT GRAPHBLAS_LIBRARY)
+    message(FATAL_ERROR "Could not find graphblas library")
+endif()
+
+message(STATUS "GraphBLAS include: ${GRAPHBLAS_INCLUDE_DIR}")
+message(STATUS "GraphBLAS library: ${GRAPHBLAS_LIBRARY}")
 
 # Include directories
-include_directories(${SuiteSparse_INCLUDE_DIRS})
+include_directories(${GRAPHBLAS_INCLUDE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src/main)
 
 # Source files
@@ -32,9 +52,9 @@ add_executable(bfs_analysis
     ${UTILS_SOURCES}
 )
 
-target_link_libraries(bfs_analysis ${SuiteSparse_LIBRARIES} m)
+target_link_libraries(bfs_analysis ${GRAPHBLAS_LIBRARY} m pthread)
 
-# Tests
+# Tests - добавляем линковку с GraphBLAS
 enable_testing()
 
 add_executable(test_classic_bfs
@@ -43,19 +63,22 @@ add_executable(test_classic_bfs
     ${UTILS_SOURCES}
 )
 
+# Важно: добавляем линковку с GraphBLAS для тестов
+target_link_libraries(test_classic_bfs ${GRAPHBLAS_LIBRARY} m pthread)
+
 add_executable(test_graphblas_bfs
     src/tests/test_graphblas_bfs.c
     ${GRAPHBLAS_BFS_SOURCES}
     ${UTILS_SOURCES}
 )
 
-target_link_libraries(test_classic_bfs ${SuiteSparse_LIBRARIES} m)
-target_link_libraries(test_graphblas_bfs ${SuiteSparse_LIBRARIES} m)
+target_link_libraries(test_graphblas_bfs ${GRAPHBLAS_LIBRARY} m pthread)
+
+# Добавляем include directory для тестов
+target_include_directories(test_classic_bfs PRIVATE ${GRAPHBLAS_INCLUDE_DIR})
+target_include_directories(test_graphblas_bfs PRIVATE ${GRAPHBLAS_INCLUDE_DIR})
 
 add_test(NAME ClassicBFS COMMAND test_classic_bfs)
 add_test(NAME GraphBLASBFS COMMAND test_graphblas_bfs)
 
-# Print status
-message(STATUS "Build configuration:")
-message(STATUS "  SuiteSparse include: ${SuiteSparse_INCLUDE_DIRS}")
-message(STATUS "  SuiteSparse libs: ${SuiteSparse_LIBRARIES}")
+message(STATUS "Build configuration ready")
