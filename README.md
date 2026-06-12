@@ -82,7 +82,7 @@ int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sour
 * **Особенности:** на больших графах может быть эффективнее классической версии за счёт встроенной параллелизации.
 * **Сложность:** Память — $O(V + E)$ + накладные расходы библиотеки GraphBLAS.
 
-## 🛠️ Вспомогательные функции
+## Вспомогательные функции
 
 * `load_matrix_market` — загрузка графа из файла формата Matrix Market (`.mtx`).
 * `timer_start` / `timer_elapsed_us` — высокоточный таймер на основе функции `gettimeofday()` (измерение в микросекундах).
@@ -90,7 +90,7 @@ int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sour
 
 ---
 
-## 🚀 Сборка и запуск
+## Сборка и запуск
 
 ### Требования
 Для установки необходимых зависимостей в Ubuntu/Debian выполните:
