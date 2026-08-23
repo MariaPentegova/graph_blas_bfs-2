@@ -168,6 +168,20 @@ int find_max_degree_vertex(Graph* graph) {
     return max_vertex;
 }
 
+void delete_graph(struct Graph* g) {
+    if (g == NULL) return;
+    for (int i = 0; i < g->num_of_vertices; i++) {
+        struct Node* current = g->adjLists[i];
+        while (current != NULL) {
+            struct Node* temp = current;
+            current = current->next;
+            free(temp);
+        }
+    }
+    free(g->adjLists);
+    free(g);
+}
+
 /* void save_bfs_result(const char* filename, int* parent, int* level, int n, double time_ms, const char* algorithm) {
     FILE* f = fopen(filename, "w");
     if (!f) return;
