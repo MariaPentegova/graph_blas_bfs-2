@@ -168,7 +168,7 @@ int find_max_degree_vertex(Graph* graph) {
     return max_vertex;
 }
 
-void delete_graph(struct Graph* g) {
+void delete_graph(Graph* g) {
     if (g == NULL) return;
     for (int i = 0; i < g->num_of_vertices; i++) {
         struct Node* current = g->adjLists[i];
