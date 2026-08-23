@@ -17,6 +17,10 @@ struct CSRMatrix {
     int* col_idx;
 };
 
+typedef struct Node Node;
+typedef struct Graph Graph;
+typedef struct CSRMatrix CSRMatrix;
+
 struct Graph* create_graph(int n);
 void add_edge(struct Graph* g, int src, int dest);
 struct Graph* load_matrix(const char* filename);
