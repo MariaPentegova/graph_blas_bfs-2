@@ -2,7 +2,7 @@
 #include <string.h>
 #include <ctype.h>
 
-void timer_start(Timer* timer) {
+/* void timer_start(Timer* timer) {
     gettimeofday(&timer->start, NULL);
 }
 
@@ -19,114 +19,156 @@ double timer_elapsed_ms(Timer* timer) {
     elapsed += (timer->end.tv_usec - timer->start.tv_usec) / 1000.0;
     return elapsed;
 }
+ */
 
-int load_matrix_market(const char* filename, 
-                        int** row_ptr, int** col_idx, double** values,
-                        int* n, int* nnz) {
+Graph* load_matrix(const char* filename) {
     FILE* f = fopen(filename, "r");
-    if (!f) return -1;
-    
-    char line[1024];
-    int rows = 0, cols = 0, nonzeros = 0;
-    int header_read = 0;
-    int is_symmetric = 0;
-    
-    // Чтение заголовка
-    while (fgets(line, sizeof(line), f)) {
-        if (line[0] == '%') {
-            if (strstr(line, "symmetric")) is_symmetric = 1;
-            continue;
-        }
-        if (!header_read) {
-            if (sscanf(line, "%d %d %d", &rows, &cols, &nonzeros) == 3) {
-                *n = rows;
-                *nnz = nonzeros;
-                header_read = 1;
-                break;
-            }
-        }
+    if (f == NULL) {
+        printf("Error: не удалось открыть файл %s\n", filename);
+        return NULL;
     }
     
-    if (!header_read) {
+    char line[256];
+    
+    if (fgets(line, sizeof(line), f) == NULL) {
+        printf("Error: пустой файл\n");
         fclose(f);
-        return -2;
+        return NULL;
     }
     
-    // Временное хранение
-    int* temp_row = (int*)malloc(nonzeros * sizeof(int));
-    int* temp_col = (int*)malloc(nonzeros * sizeof(int));
+    if (strstr(line, "%%MatrixMarket") == NULL) {
+        printf("Error: неверный формат (не .mtx)\n");
+        fclose(f);
+        return NULL;
+    }
+
+    if (strstr(line, "coordinate") == NULL) {
+        printf("Error: поддерживается только coordinate\n");
+        fclose(f);
+        return NULL;
+    }
     
-    rewind(f);
-    int idx = 0;
-    int in_data = 0;
+    if (strstr(line, "symmetric") == NULL) {
+        printf("Ошибка: поддерживается только symmetric (неориентированный)\n");
+        fclose(f);
+        return NULL;
+    }
     
-    while (fgets(line, sizeof(line), f) && idx < nonzeros) {
-        if (line[0] == '%') continue;
-        if (strlen(line) <= 1) continue;
-        
-        if (!in_data) {
-            int r, c;
-            if (sscanf(line, "%d %d", &r, &c) == 2) {
-                in_data = 1;
-            }
-        }
-        
-        if (in_data) {
-            int r, c;
-            if (sscanf(line, "%d %d", &r, &c) == 2) {
-                temp_row[idx] = r - 1;
-                temp_col[idx] = c - 1;
-                idx++;
-            }
+    if (strstr(line, "pattern") == NULL) {
+        printf("Error: поддерживается только pattern (без весов)\n");
+        fclose(f);
+        return NULL;
+    }
+    
+    while (fgets(line, sizeof(line), f) != NULL) {
+        if (line[0] != '%') {
+            break;
         }
     }
+    
+    int rows, cols, entries;
+    if (sscanf(line, "%d %d %d", &rows, &cols, &entries) != 3) {
+        printf("Ошибка: не удалось прочитать размеры\n");
+        fclose(f);
+        return NULL;
+    }
+    
+    if (rows != cols) {
+        printf("Ошибка: матрица не квадратная (%d x %d)\n", rows, cols);
+        fclose(f);
+        return NULL;
+    }
+    
+    Graph* graph = create_graph(rows);
+    if (graph == NULL) {
+        printf("Ошибка: не удалось создать граф\n");
+        fclose(f);
+        return NULL;
+    }
+    
+    int src, dest;
+    for (int i = 0; i < entries; i++) {
+        if (fscanf(f, "%d %d", &src, &dest) != 2) {
+            printf("Ошибка: не удалось прочитать ребро %d\n", i);
+            delete_graph(graph);
+            fclose(f);
+            return NULL;
+        }
+        src--;
+        dest--;
+        add_edge(graph, src, dest);
+    }
+    
     fclose(f);
-    
-    // Для симметричных графов удваиваем количество рёбер
-    int total_nnz = nonzeros;
-    if (is_symmetric) {
-        total_nnz = 0;
-        for (int i = 0; i < nonzeros; i++) {
-            total_nnz++;
-            if (temp_row[i] != temp_col[i]) total_nnz++;
-        }
-    }
-    
-    // Построение CSR
-    *row_ptr = (int*)calloc(rows + 1, sizeof(int));
-    for (int i = 0; i < nonzeros; i++) {
-        (*row_ptr)[temp_row[i] + 1]++;
-        if (is_symmetric && temp_row[i] != temp_col[i]) {
-            (*row_ptr)[temp_col[i] + 1]++;
-        }
-    }
-    for (int i = 1; i <= rows; i++) {
-        (*row_ptr)[i] += (*row_ptr)[i - 1];
-    }
-    
-    *col_idx = (int*)malloc(total_nnz * sizeof(int));
-    *values = NULL;
-    
-    int* pos = (int*)malloc(rows * sizeof(int));
-    for (int i = 0; i < rows; i++) pos[i] = (*row_ptr)[i];
-    
-    for (int i = 0; i < nonzeros; i++) {
-        int r = temp_row[i];
-        int c = temp_col[i];
-        (*col_idx)[pos[r]++] = c;
-        if (is_symmetric && r != c) {
-            (*col_idx)[pos[c]++] = r;
-        }
-    }
-    
-    free(pos);
-    free(temp_row);
-    free(temp_col);
-    
-    return 0;
+    printf("Граф загружен: %d вершин, %d ребер\n", rows, entries);
+    return graph;
 }
 
-void save_bfs_result(const char* filename, int* parent, int* level, int n, double time_ms, const char* algorithm) {
+CSRMatrix* graph_to_csr(Graph* graph) {
+    if (graph == NULL) {
+        return NULL;
+    }
+    
+    CSRMatrix* csr = (CSRMatrix*)malloc(sizeof(CSRMatrix));
+    csr->n = graph->num_of_vertices;
+    
+    csr->row_ptr = (int*)malloc((graph->num_of_vertices + 1) * sizeof(int));
+    
+    int total_edges = 0;
+    csr->row_ptr[0] = 0;
+    for (int i = 0; i < graph->num_of_vertices; i++) {
+        int degree = 0;
+        Node* current = graph->adjLists[i];
+        while (current != NULL) {
+            degree++;
+            current = current->next;
+        }
+        total_edges += degree;
+        csr->row_ptr[i + 1] = csr->row_ptr[i] + degree;
+    }
+    
+    csr->col_idx = (int*)malloc(total_edges * sizeof(int));
+    
+    int* current_pos = (int*)calloc(graph->num_of_vertices, sizeof(int));
+    for (int i = 0; i < graph->num_of_vertices; i++) {
+        Node* current = graph->adjLists[i];
+        while (current != NULL) {
+            int pos = csr->row_ptr[i] + current_pos[i];
+            csr->col_idx[pos] = current->vertex;
+            current_pos[i]++;
+            current = current->next;
+        }
+    }
+    
+    free(current_pos);
+    return csr;
+}
+
+int find_max_degree_vertex(Graph* graph) {
+    if (graph == NULL) {
+        return -1;
+    }
+    
+    int max_degree = -1;
+    int max_vertex = 0;
+    
+    for (int i = 0; i < graph->num_of_vertices; i++) {
+        int degree = 0;
+        Node* current = graph->adjLists[i];
+        while (current != NULL) {
+            degree++;
+            current = current->next;
+        }
+        if (degree > max_degree) {
+            max_degree = degree;
+            max_vertex = i;
+        }
+    }
+    
+    return max_vertex;
+}
+
+/* void save_bfs_result(const char* filename, int* parent, int* level, int n, double time_ms, const char* algorithm) {
     FILE* f = fopen(filename, "w");
     if (!f) return;
     
@@ -135,4 +177,4 @@ void save_bfs_result(const char* filename, int* parent, int* level, int n, doubl
         fprintf(f, "%d %d %d\n", i, parent[i], level[i]);
     }
     fclose(f);
-}
+} */
