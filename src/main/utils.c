@@ -1,25 +1,50 @@
-#include "utils.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <time.h>
+#include "utils.h"
 
-/* void timer_start(Timer* timer) {
-    gettimeofday(&timer->start, NULL);
+
+//что-то не так с bfs_func, как компилятор поймёт по жтому, какиефункции ему замерять??
+double get_time_in_seconds() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
 }
 
-double timer_elapsed_us(Timer* timer) {
-    gettimeofday(&timer->end, NULL);
-    double elapsed = (timer->end.tv_sec - timer->start.tv_sec) * 1000000.0;
-    elapsed += (timer->end.tv_usec - timer->start.tv_usec);
-    return elapsed;
+double measure_bfs_time(void (*bfs_func)(Graph*, int, int*), 
+                         Graph* g, 
+                         int start_vertex) {
+    int* parent = (int*)malloc(g->num_of_vertices * sizeof(int));
+    if (parent == NULL) {
+        printf("Ошибка: не удалось выделить память\n");
+        return -1.0;
+    }
+    
+    double start = get_time_in_seconds();
+    bfs_func(g, start_vertex, parent);
+    double end = get_time_in_seconds();
+    
+    free(parent);
+    return end - start;
 }
 
-double timer_elapsed_ms(Timer* timer) {
-    gettimeofday(&timer->end, NULL);
-    double elapsed = (timer->end.tv_sec - timer->start.tv_sec) * 1000.0;
-    elapsed += (timer->end.tv_usec - timer->start.tv_usec) / 1000.0;
-    return elapsed;
+double measure_bfs_time_graphblas(void (*bfs_func)(CSRMatrix*, int, int*), 
+                                   CSRMatrix* csr, 
+                                   int start_vertex) {
+    int* parent = (int*)malloc(csr->n * sizeof(int));
+    if (parent == NULL) {
+        printf("Ошибка: не удалось выделить память\n");
+        return -1.0;
+    }
+    
+    double start = get_time_in_seconds();
+    bfs_func(csr, start_vertex, parent);
+    double end = get_time_in_seconds();
+    
+    free(parent);
+    return end - start;
 }
- */
 
 Graph* load_matrix(const char* filename) {
     FILE* f = fopen(filename, "r");
