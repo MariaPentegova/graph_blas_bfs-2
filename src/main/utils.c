@@ -5,7 +5,7 @@
 #include "utils.h"
 
 
-//что-то не так с bfs_func, как компилятор поймёт по жтому, какиефункции ему замерять??
+/* //что-то не так с bfs_func, как компилятор поймёт по жтому, какиефункции ему замерять??
 double get_time_in_seconds() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -44,7 +44,7 @@ double measure_bfs_time_graphblas(void (*bfs_func)(CSRMatrix*, int, int*),
     
     free(parent);
     return end - start;
-}
+} */
 
 Graph* load_matrix(const char* filename) {
     FILE* f = fopen(filename, "r");
@@ -74,7 +74,7 @@ Graph* load_matrix(const char* filename) {
     }
     
     if (strstr(line, "symmetric") == NULL) {
-        printf("Ошибка: поддерживается только symmetric (неориентированный)\n");
+        printf("Error: поддерживается только symmetric (неориентированный)\n");
         fclose(f);
         return NULL;
     }
@@ -93,20 +93,20 @@ Graph* load_matrix(const char* filename) {
     
     int rows, cols, entries;
     if (sscanf(line, "%d %d %d", &rows, &cols, &entries) != 3) {
-        printf("Ошибка: не удалось прочитать размеры\n");
+        printf("Error: не удалось прочитать размеры\n");
         fclose(f);
         return NULL;
     }
     
     if (rows != cols) {
-        printf("Ошибка: матрица не квадратная (%d x %d)\n", rows, cols);
+        printf("Error: матрица не квадратная (%d x %d)\n", rows, cols);
         fclose(f);
         return NULL;
     }
     
     Graph* graph = create_graph(rows);
     if (graph == NULL) {
-        printf("Ошибка: не удалось создать граф\n");
+        printf("Error: не удалось создать граф\n");
         fclose(f);
         return NULL;
     }
@@ -114,7 +114,7 @@ Graph* load_matrix(const char* filename) {
     int src, dest;
     for (int i = 0; i < entries; i++) {
         if (fscanf(f, "%d %d", &src, &dest) != 2) {
-            printf("Ошибка: не удалось прочитать ребро %d\n", i);
+            printf("Error: не удалось прочитать ребро %d\n", i);
             delete_graph(graph);
             fclose(f);
             return NULL;
@@ -127,6 +127,37 @@ Graph* load_matrix(const char* filename) {
     fclose(f);
     printf("Граф загружен: %d вершин, %d ребер\n", rows, entries);
     return graph;
+}
+
+void add_edge(Graph* g, int src, int dest) {
+    if (g == NULL) {
+        return;
+    }
+    
+    if (src < 0 || src >= g->num_of_vertices || dest < 0 || dest >= g->num_of_vertices) {
+        printf("Error: некорректные индексы вершин (%d, %d)\n", src, dest);
+        return;
+    }
+    
+    // ребро src -> dest
+    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+    if (newNode == NULL) {
+        printf("Ошибка: не удалось выделить память для ребра (%d, %d)\n", src, dest);
+        return;
+    }
+    newNode->vertex = dest;
+    newNode->next = g->adjLists[src];
+    g->adjLists[src] = newNode;
+    
+    // dest -> src
+    newNode = (struct Node*)malloc(sizeof(struct Node));
+    if (newNode == NULL) {
+        printf("Error: не удалось выделить память для обратного ребра (%d, %d)\n", dest, src);
+        return;
+    }
+    newNode->vertex = src;
+    newNode->next = g->adjLists[dest];
+    g->adjLists[dest] = newNode;
 }
 
 CSRMatrix* graph_to_csr(Graph* graph) {
