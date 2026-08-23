@@ -129,6 +129,12 @@ Graph* load_matrix(const char* filename) {
     return graph;
 }
 
+Graph* create_graph(int n){
+    Graph* graph = (Graph*)malloc(sizeof(Graph*));
+    
+    return graph;
+};
+
 void add_edge(Graph* g, int src, int dest) {
     if (g == NULL) {
         return;
