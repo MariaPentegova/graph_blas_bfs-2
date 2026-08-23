@@ -4,7 +4,7 @@
 #include <time.h>
 #include "utils.h"
 
-
+//проверить потом, не пропущено или, наоборот, не написано ли лишнее struct
 /* //что-то не так с bfs_func, как компилятор поймёт по жтому, какиефункции ему замерять??
 double get_time_in_seconds() {
     struct timespec ts;
@@ -45,6 +45,57 @@ double measure_bfs_time_graphblas(void (*bfs_func)(CSRMatrix*, int, int*),
     free(parent);
     return end - start;
 } */
+
+Graph* create_graph(int n){
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    if (graph == NULL) {
+        printf("Error: не удалось выделить память для графа\n");
+        return NULL;
+    }
+    graph->num_of_vertices = n;
+    graph->adjLists = (Node**)malloc(n * sizeof(Node*));
+    if (graph->adjLists == NULL) {
+        printf("Error: не удалось выделить память для списков смежности\n");
+        free(graph);
+        return NULL;
+    }
+    
+    for (int i = 0; i < n; i++) {
+        graph->adjLists[i] = NULL;
+    }
+};
+
+void add_edge(Graph* g, int src, int dest) {
+    if (g == NULL) {
+        return;
+    }
+    
+    if (src < 0 || src >= g->num_of_vertices || dest < 0 || dest >= g->num_of_vertices) {
+        printf("Error: некорректные индексы вершин (%d, %d)\n", src, dest);
+        return;
+    }
+    
+    // src -> dest
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        printf("Ошибка: не удалось выделить память для ребра (%d, %d)\n", src, dest);
+        return;
+    }
+    newNode->vertex = dest;
+    newNode->next = g->adjLists[src];
+    g->adjLists[src] = newNode;
+    
+    // dest -> src
+    newNode = (struct Node*)malloc(sizeof(struct Node));
+    if (newNode == NULL) {
+        printf("Error: не удалось выделить память для обратного ребра (%d, %d)\n", dest, src);
+        return;
+    }
+    newNode->vertex = src;
+    newNode->next = g->adjLists[dest];
+    g->adjLists[dest] = newNode;
+}
+
 
 Graph* load_matrix(const char* filename) {
     FILE* f = fopen(filename, "r");
@@ -105,11 +156,6 @@ Graph* load_matrix(const char* filename) {
     }
     
     Graph* graph = create_graph(rows);
-    if (graph == NULL) {
-        printf("Error: не удалось создать граф\n");
-        fclose(f);
-        return NULL;
-    }
     
     int src, dest;
     for (int i = 0; i < entries; i++) {
@@ -127,43 +173,6 @@ Graph* load_matrix(const char* filename) {
     fclose(f);
     printf("Граф загружен: %d вершин, %d ребер\n", rows, entries);
     return graph;
-}
-
-Graph* create_graph(int n){
-    Graph* graph = (Graph*)malloc(sizeof(Graph*));
-    
-    return graph;
-};
-
-void add_edge(Graph* g, int src, int dest) {
-    if (g == NULL) {
-        return;
-    }
-    
-    if (src < 0 || src >= g->num_of_vertices || dest < 0 || dest >= g->num_of_vertices) {
-        printf("Error: некорректные индексы вершин (%d, %d)\n", src, dest);
-        return;
-    }
-    
-    // ребро src -> dest
-    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
-    if (newNode == NULL) {
-        printf("Ошибка: не удалось выделить память для ребра (%d, %d)\n", src, dest);
-        return;
-    }
-    newNode->vertex = dest;
-    newNode->next = g->adjLists[src];
-    g->adjLists[src] = newNode;
-    
-    // dest -> src
-    newNode = (struct Node*)malloc(sizeof(struct Node));
-    if (newNode == NULL) {
-        printf("Error: не удалось выделить память для обратного ребра (%d, %d)\n", dest, src);
-        return;
-    }
-    newNode->vertex = src;
-    newNode->next = g->adjLists[dest];
-    g->adjLists[dest] = newNode;
 }
 
 CSRMatrix* graph_to_csr(Graph* graph) {
@@ -233,9 +242,9 @@ int find_max_degree_vertex(Graph* graph) {
 void delete_graph(Graph* g) {
     if (g == NULL) return;
     for (int i = 0; i < g->num_of_vertices; i++) {
-        struct Node* current = g->adjLists[i];
+        Node* current = g->adjLists[i];
         while (current != NULL) {
-            struct Node* temp = current;
+            Node* temp = current;
             current = current->next;
             free(temp);
         }
