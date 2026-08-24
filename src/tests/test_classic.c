@@ -5,14 +5,10 @@
 #include "src/classic_bfs.h"
 
 void test_classic_parent_bfs_correctness() {
-    printf("\n=== Test: Classic Parent BFS Correctness ===\n");
+    printf("\nTest Classic Parent BFS Correctness\n");
 
-    Graph* g = create_test_graph();
-    assert(g != NULL);
-    
-    CSRMatrix* csr = graph_to_csr(g);
+    CSRMatrix* csr = create_test_csr(); 
     assert(csr != NULL);
-    delete_graph(g);
     
     int n = csr->n;
     int* parent = (int*)malloc(n * sizeof(int));
