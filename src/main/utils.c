@@ -5,47 +5,6 @@
 #include "utils.h"
 
 //проверить потом, не пропущено или, наоборот, не написано ли лишнее struct
-/* //что-то не так с bfs_func, как компилятор поймёт по жтому, какиефункции ему замерять??
-double get_time_in_seconds() {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
-}
-
-double measure_bfs_time(void (*bfs_func)(Graph*, int, int*), 
-                         Graph* g, 
-                         int start_vertex) {
-    int* parent = (int*)malloc(g->num_of_vertices * sizeof(int));
-    if (parent == NULL) {
-        printf("Ошибка: не удалось выделить память\n");
-        return -1.0;
-    }
-    
-    double start = get_time_in_seconds();
-    bfs_func(g, start_vertex, parent);
-    double end = get_time_in_seconds();
-    
-    free(parent);
-    return end - start;
-}
-
-double measure_bfs_time_graphblas(void (*bfs_func)(CSRMatrix*, int, int*), 
-                                   CSRMatrix* csr, 
-                                   int start_vertex) {
-    int* parent = (int*)malloc(csr->n * sizeof(int));
-    if (parent == NULL) {
-        printf("Ошибка: не удалось выделить память\n");
-        return -1.0;
-    }
-    
-    double start = get_time_in_seconds();
-    bfs_func(csr, start_vertex, parent);
-    double end = get_time_in_seconds();
-    
-    free(parent);
-    return end - start;
-} */
-
 Graph* create_graph(int n){
     Graph* graph = (Graph*)malloc(sizeof(Graph));
     if (graph == NULL) {
@@ -253,13 +212,11 @@ void delete_graph(Graph* g) {
     free(g);
 }
 
-/* void save_bfs_result(const char* filename, int* parent, int* level, int n, double time_ms, const char* algorithm) {
-    FILE* f = fopen(filename, "w");
-    if (!f) return;
-    
-    fprintf(f, "# %s\n# Time: %.6f ms\n# Node Parent Level\n", algorithm, time_ms);
-    for (int i = 0; i < n; i++) {
-        fprintf(f, "%d %d %d\n", i, parent[i], level[i]);
+void delete_csr(CSRMatrix* csr) {
+    if (csr == NULL) {
+        return;
     }
-    fclose(f);
-} */
+    free(csr->row_ptr);
+    free(csr->col_idx);
+    free(csr);
+}
