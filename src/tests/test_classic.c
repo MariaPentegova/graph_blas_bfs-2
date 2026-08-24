@@ -45,8 +45,6 @@ void test_classic_parent_bfs_correctness() {
     assert(no_self_loops == 1);
     printf("Нет петель у не корневых вершин\n");
     
-    // Граф: 0-1, 1-2, 0-3, 1-4, 3-4
-    // Для start_vertex = 0 (макс. степень = 3)
     int expected_parent_0[5] = {0, 0, 1, 0, 1};  
     int expected_parent_1[5] = {0, 1, 1, 0, 1};  
     
@@ -138,9 +136,7 @@ void test_classic_multisource_bfs_correctness() {
     assert(no_self_loops == 1);
     printf("Нет петель у не корневых вершин\n");
     
-    // Граф: 0-1, 1-2, 0-3, 1-4, 3-4
-    // sources = {0, 1, 2, 3} (для n=5, step=1)
-    int expected_parent[5] = {0, 1, 2, 3, 1};  // 4 пришла из 1
+    int expected_parent[5] = {0, 1, 2, 3, 1};
     
     for (int i = 0; i < n; i++) {
         if (i == 0 || i == 1 || i == 2 || i == 3) {
