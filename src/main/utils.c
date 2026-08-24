@@ -4,7 +4,6 @@
 #include <time.h>
 #include "utils.h"
 
-//проверить потом, не пропущено или, наоборот, не написано ли лишнее struct
 Graph* create_graph(int n){
     Graph* graph = (Graph*)malloc(sizeof(Graph));
     if (graph == NULL) {
@@ -22,6 +21,7 @@ Graph* create_graph(int n){
     for (int i = 0; i < n; i++) {
         graph->adjLists[i] = NULL;
     }
+    return graph;
 };
 
 void add_edge(Graph* g, int src, int dest) {
@@ -45,7 +45,7 @@ void add_edge(Graph* g, int src, int dest) {
     g->adjLists[src] = newNode;
     
     // dest -> src
-    newNode = (struct Node*)malloc(sizeof(struct Node));
+    newNode = (Node*)malloc(sizeof(Node));
     if (newNode == NULL) {
         printf("Error: не удалось выделить память для обратного ребра (%d, %d)\n", dest, src);
         return;
