@@ -111,3 +111,33 @@ int main(int argc, char* argv[]) {
     
     return 0;
 }
+
+
+/* int main() {
+    // 1. Загружаем граф
+    Graph* g = load_matrix("graph.mtx");
+    if (g == NULL) {
+        return 1;
+    }
+    
+    // 2. Находим вершину с макс. степенью
+    int start = find_max_degree_vertex(g);
+    
+    // 3. Преобразуем в CSR
+    CSRMatrix* csr = graph_to_csr(g);
+    if (csr == NULL) {
+        delete_graph(g);
+        return 1;
+    }
+    
+    // 4. Работаем с CSR (BFS, замеры, GraphBLAS...)
+    // ...
+    
+    // 5. Очистка
+    delete_graph(g);                    // удаляем список смежности
+    free(csr->row_ptr);                 // удаляем row_ptr
+    free(csr->col_idx);                 // удаляем col_idx
+    free(csr);                          // удаляем саму структуру CSR
+    
+    return 0;
+} */
