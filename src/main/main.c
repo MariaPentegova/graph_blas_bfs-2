@@ -57,7 +57,7 @@ int main() {
     
     // Замеры времени для всех 4 функций
     
-    struct timespec start, end;
+    struct timespec start, end; 
     double elapsed;
     
     printf("\n Classic Parent BFS \n");
