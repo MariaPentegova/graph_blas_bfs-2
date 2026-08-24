@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <GraphBLAS.h>
+
+#include "graphblas_bfs.h"
 #include "utils.h"
 
 // CSR в GraphBLAS
