@@ -124,10 +124,10 @@ make
 * Находит вершину с максимальной степенью
 * Выбирает равномерно распределённые по графу вершины для обхода(всего 4 вершины)
 * Запускает 4 реализации BFS с замером времени:
-** classic_parent_bfs
-**classic_multisource_bfs
-**graphblas_level_bfs
-**graphblas_multisource_level_bfs
+classic_parent_bfs,
+classic_multisource_bfs,
+graphblas_level_bfs,
+graphblas_multisource_level_bfs.
 
 ### Запуск тестов
 
