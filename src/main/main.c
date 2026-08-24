@@ -57,7 +57,12 @@ int main() {
     printf("\n Multisource BFS n");
     csr_multisource_bfs(csr, sources, num_sources, parent);
     // можно вывести результат или замерить время
-    
+
+    csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A);
+    int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level);
+    //получается, здесь замер времени
+    int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_sources, int* level);
+    //получается, здесь замер времени
     free(parent);
     free(sources);
     delete_graph(g);
