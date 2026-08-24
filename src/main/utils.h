@@ -21,11 +21,11 @@ typedef struct Node Node;
 typedef struct Graph Graph;
 typedef struct CSRMatrix CSRMatrix;
 
-struct Graph* create_graph(int n);
+Graph* create_graph(int n);
 void add_edge(struct Graph* g, int src, int dest);
-struct Graph* load_matrix(const char* filename);
-struct CSRMatrix* graph_to_csr(struct Graph* g);
-int find_max_degree_vertex(struct Graph* g);
-void delete_graph(struct Graph* g);
+Graph* load_matrix(const char* filename);
+CSRMatrix* graph_to_csr(Graph* g);
+int find_max_degree_vertex(Graph* g);
+void delete_graph(Graph* g);
 
 #endif
