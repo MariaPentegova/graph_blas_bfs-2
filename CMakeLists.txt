@@ -64,6 +64,24 @@ target_link_libraries(bfs_analysis
     pthread
 )
 
+add_executable(bfs_benchmark
+    ${MAIN_DIR}/benchmark.c
+    ${UTILS_SOURCES}
+    ${CLASSIC_BFS_SOURCES}
+    ${GRAPHBLAS_BFS_SOURCES}
+)
+
+target_include_directories(bfs_benchmark PRIVATE
+    ${MAIN_DIR}
+    ${GRAPHBLAS_INCLUDE_DIR}
+)
+
+target_link_libraries(bfs_benchmark
+    ${GRAPHBLAS_LIBRARY}
+    m
+    pthread
+)
+
 enable_testing()
 
 add_executable(test_classic_bfs
