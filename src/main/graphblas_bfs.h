@@ -3,7 +3,8 @@
 
 #include <GraphBLAS.h>
 
-csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A)
-int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level)
+csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A);
+int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level);
+int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_sources, int* level);
 
 #endif
