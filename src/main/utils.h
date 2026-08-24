@@ -27,5 +27,6 @@ Graph* load_matrix(const char* filename);
 CSRMatrix* graph_to_csr(Graph* g);
 int find_max_degree_vertex(Graph* g);
 void delete_graph(Graph* g);
+void delete_csr(CSRMatrix* csr);
 
 #endif
