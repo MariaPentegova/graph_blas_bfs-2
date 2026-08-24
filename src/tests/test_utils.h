@@ -1,6 +1,8 @@
 #ifndef TEST_UTILS_H
 #define TEST_UTILS_H
 
+#include "src/utils.h"
+
 Graph* create_test_graph();
 
 CSRMatrix* create_test_csr();
