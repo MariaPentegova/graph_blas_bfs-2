@@ -7,12 +7,8 @@
 void test_graphblas_level_bfs_correctness() {
     printf("\n=== Test: GraphBLAS Level BFS Correctness ===\n");
 
-    Graph* g = create_test_graph();
-    assert(g != NULL);
-    
-    CSRMatrix* csr = graph_to_csr(g);
+    CSRMatrix* csr = create_test_csr();
     assert(csr != NULL);
-    delete_graph(g);
     
     int n = csr->n;
     int* level = (int*)malloc(n * sizeof(int));
@@ -40,9 +36,6 @@ void test_graphblas_level_bfs_correctness() {
     assert(level[start_vertex] == 0);
     printf("Расстояние до старта = 0\n");
     
-    // 6. Проверка 3: Ожидаемые расстояния для маленького графа
-    // Граф: 0-1, 1-2, 0-3, 1-4, 3-4
-    // Ожидаемые расстояния из start_vertex (0 или 1)
     int expected_levels_0[5] = {0, 1, 2, 1, 2};  
     int expected_levels_1[5] = {1, 0, 1, 2, 1};  
     
@@ -95,12 +88,8 @@ void test_graphblas_level_bfs_correctness() {
 void test_graphblas_multisource_level_bfs_correctness() {
     printf("\nTest GraphBLAS Multisource Level BFS Correctness \n");
     
-    Graph* g = create_test_graph();
-    assert(g != NULL);
-    
-    CSRMatrix* csr = graph_to_csr(g);
+    CSRMatrix* csr = create_test_csr();
     assert(csr != NULL);
-    delete_graph(g);
     
     int n = csr->n;
     int* level = (int*)malloc(n * sizeof(int));
@@ -144,9 +133,6 @@ void test_graphblas_multisource_level_bfs_correctness() {
     assert(all_sources_zero == 1);
     printf("Все источники имеют distance=0\n");
     
-    // Граф: 0-1, 1-2, 0-3, 1-4, 3-4
-    // sources = {0, 1, 2, 3} (для n=5, step=1)
-    // Ожидаемые расстояния: 0:0, 1:0, 2:0, 3:0, 4:1 (из 1)
     assert(level[0] == 0);
     assert(level[1] == 0);
     assert(level[2] == 0);
