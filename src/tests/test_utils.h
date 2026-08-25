@@ -1,7 +1,7 @@
 #ifndef TEST_UTILS_H
 #define TEST_UTILS_H
 
-#include "../utils.h"
+#include "../main/utils.h"
 
 Graph* create_test_graph();
 
