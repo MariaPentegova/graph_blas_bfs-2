@@ -5,7 +5,7 @@
 #include "../main/graphblas_bfs.h"
 
 void test_graphblas_level_bfs_correctness() {
-    printf("\n=== Test: GraphBLAS Level BFS Correctness ===\n");
+    printf("\n Test: GraphBLAS Level BFS Correctness \n");
 
     CSRMatrix* csr = create_test_csr();
     assert(csr != NULL);
