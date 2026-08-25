@@ -4,7 +4,8 @@
 #include "utils.h"
 #include "graphblas_bfs.h"
 
-int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
+int csr_to_graphblas(CSRMatrix* csr, void** A) {
+    GrB_Matrix* mat = (GrB_Matrix*)A;
     if (csr == NULL || A == NULL) {
         return -1;
     }
@@ -15,7 +16,7 @@ int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
     GrB_Index* row_ptr = (GrB_Index*)csr->row_ptr;
     GrB_Index* col_idx = (GrB_Index*)csr->col_idx;
     GrB_Info info = GxB_Matrix_import_CSR(
-        A,
+        mat,
         GrB_BOOL,
         n,                    
         n,                    
@@ -25,7 +26,7 @@ int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
         n + 1,                
         total_edges,         
         0,                    
-        GrB_TRUE,             
+        GxB_TRUE,             
         NULL,                 
         NULL                  
     );
@@ -40,7 +41,7 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     
     int n = csr->n;
     GrB_Matrix A = NULL;
-    if (csr_to_graphblas(csr, &A) != 0) {
+    if (csr_to_graphblas(csr, (void**)&A) != 0) {
         printf("Error: не удалось превратить CSR в GraphBLAS\n");
         return -1;
     }
@@ -65,7 +66,7 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     level[start_vertex] = 0;
     
     GrB_Semiring semiring;
-    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL, GrB_BOOL);
+    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL);
     
     int current_level = 0;
     GrB_Index nvals = 1;
@@ -160,7 +161,7 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
     }
 
     GrB_Semiring semiring;
-    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL, GrB_BOOL);
+    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL);
     
     int current_level = 0;
     GrB_Index nvals = num_sources;  
