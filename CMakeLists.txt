@@ -4,6 +4,9 @@ project(GraphBFS VERSION 1.0.0)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# ============================================
+# Поиск GraphBLAS (без find_package)
+# ============================================
 find_path(GRAPHBLAS_INCLUDE_DIR
     NAMES GraphBLAS.h
     PATHS /usr/local/include/suitesparse /usr/include/suitesparse /usr/local/include /usr/include
@@ -26,10 +29,15 @@ endif()
 message(STATUS "GraphBLAS include: ${GRAPHBLAS_INCLUDE_DIR}")
 message(STATUS "GraphBLAS library: ${GRAPHBLAS_LIBRARY}")
 
-
+# ============================================
+# Пути к файлам
+# ============================================
 set(MAIN_DIR ${PROJECT_SOURCE_DIR}/src/main)
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/src/tests)
 
+# ============================================
+# Исходные файлы
+# ============================================
 set(UTILS_SOURCES
     ${MAIN_DIR}/utils.c
 )
@@ -46,6 +54,9 @@ set(TEST_UTILS_SOURCES
     ${TESTS_DIR}/test_utils.c
 )
 
+# ============================================
+# Основной исполняемый файл
+# ============================================
 add_executable(bfs_analysis
     ${MAIN_DIR}/main.c
     ${UTILS_SOURCES}
@@ -64,6 +75,9 @@ target_link_libraries(bfs_analysis
     pthread
 )
 
+# ============================================
+# Бенчмарк
+# ============================================
 add_executable(bfs_benchmark
     ${MAIN_DIR}/benchmark.c
     ${UTILS_SOURCES}
@@ -82,6 +96,9 @@ target_link_libraries(bfs_benchmark
     pthread
 )
 
+# ============================================
+# Тесты
+# ============================================
 enable_testing()
 
 add_executable(test_classic_bfs
@@ -141,7 +158,9 @@ target_link_libraries(test_comparison
     pthread
 )
 
+# ============================================
 # Добавление тестов в CTest
+# ============================================
 add_test(NAME ClassicBFS COMMAND test_classic_bfs)
 add_test(NAME GraphBLASBFS COMMAND test_graphblas_bfs)
 add_test(NAME Comparison COMMAND test_comparison)
