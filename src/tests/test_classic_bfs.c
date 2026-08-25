@@ -20,7 +20,7 @@ void test_classic_parent_bfs_correctness() {
     
     printf("  Стартовая вершина (макс. степень): %d\n", start_vertex);
 
-    classic_parent_bfs(csr, start_vertex, parent);
+    csr_parent_bfs(csr, start_vertex, parent);
 
     int all_visited = 1;
     for (int i = 0; i < n; i++) {
@@ -97,7 +97,7 @@ void test_classic_multisource_bfs_correctness() {
     }
     printf("\n");
     
-    classic_multisource_bfs(csr, sources, num_sources, parent);
+    csr_multisource_bfs(csr, sources, num_sources, parent);
   
     int all_visited = 1;
     for (int i = 0; i < n; i++) {
