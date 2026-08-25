@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "test_utils.h"
-#include "src/classic_bfs.h"
+#include "../classic_bfs.h"
 
 void test_classic_parent_bfs_correctness() {
     printf("\nTest Classic Parent BFS Correctness\n");
