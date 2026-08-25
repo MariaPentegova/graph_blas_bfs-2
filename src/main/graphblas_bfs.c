@@ -5,12 +5,16 @@
 #include "utils.h"
 #include "graphblas_bfs.h"
 
-bool lor_bool(bool a, bool b) {
-    return a || b;
+void lor_bool(void* z, const void* x, const void* y) {
+    bool a = *(const bool*)x;
+    bool b = *(const bool*)y;
+    *(bool*)z = a || b;
 }
 
-bool land_bool(bool a, bool b) {
-    return a && b;
+void land_bool(void* z, const void* x, const void* y) {
+    bool a = *(const bool*)x;
+    bool b = *(const bool*)y;
+    *(bool*)z = a && b;
 }
 
 int csr_to_graphblas(CSRMatrix* csr, void** A) {
