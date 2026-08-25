@@ -24,7 +24,7 @@ void compare_single_source_classic_vs_graphblas() {
     delete_graph(temp_g);
     printf("Стартовая вершина (max степень): %d\n", start_vertex);
     
-    classic_parent_bfs(csr, start_vertex, parent);
+    csr_parent_bfs(csr, start_vertex, parent);
     
     for (int i = 0; i < n; i++) {
         if (parent[i] == -1) {
@@ -87,7 +87,7 @@ void compare_multisource_classic_vs_graphblas() {
     }
     printf("\n");
     
-    classic_multisource_bfs(csr, sources, num_sources, parent);
+    csr_multisource_bfs(csr, sources, num_sources, parent);
     
     for (int i = 0; i < n; i++) {
         if (parent[i] == -1) {
