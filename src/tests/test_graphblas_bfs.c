@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "test_utils.h"
-#include "../graphblas_bfs.h"
+#include "../main/graphblas_bfs.h"
 
 void test_graphblas_level_bfs_correctness() {
     printf("\n=== Test: GraphBLAS Level BFS Correctness ===\n");
