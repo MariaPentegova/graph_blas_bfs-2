@@ -99,6 +99,6 @@ int main(int argc, char* argv[]) {
     delete_graph(g);
     delete_csr(csr);
     
-    printf("\n Успех\n");
+    printf("\n Успех! \n");
     return 0;
 }
