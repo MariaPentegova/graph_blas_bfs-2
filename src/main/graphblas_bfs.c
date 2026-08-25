@@ -1,17 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "graphblas_bfs.h"
 #include "utils.h"
 
-// CSR в GraphBLAS
 int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
     if (csr == NULL || A == NULL) {
         return -1;
     }
     
-    int total_edges = csr->row_ptr[csr->n];
-    
+    int total_edges = csr->row_ptr[csr->n]; 
     GrB_Info info = GxB_Matrix_import_CSR(
         A,
         GrB_BOOL,
@@ -30,7 +27,6 @@ int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
     return (info == GrB_SUCCESS) ? 0 : -1;
 }
 
-// Level BFS на GraphBLAS
 int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     if (csr == NULL || level == NULL || start_vertex < 0 || start_vertex >= csr->n) {
         return -1;
@@ -116,7 +112,6 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     return 0;
 }
 
-// Multisource Level BFS на GraphBLAS
 int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_sources, int* level) {
     if (csr == NULL || level == NULL || sources == NULL || num_sources <= 0) {
         return -1;
