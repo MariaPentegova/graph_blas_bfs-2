@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
+#include "classic_bfs.h"
 
 void csr_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent) {
     if (csr == NULL || parent == NULL) {
