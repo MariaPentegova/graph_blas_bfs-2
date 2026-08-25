@@ -5,31 +5,42 @@
 #include "utils.h"
 #include "graphblas_bfs.h"
 
+bool lor_bool(bool a, bool b) {
+    return a || b;
+}
+
+bool land_bool(bool a, bool b) {
+    return a && b;
+}
+
 int csr_to_graphblas(CSRMatrix* csr, void** A) {
-    GrB_Matrix* mat = (GrB_Matrix*)A;
     if (csr == NULL || A == NULL) {
         return -1;
     }
-
+    
+    // Приводим void** к GrB_Matrix*
+    GrB_Matrix* mat = (GrB_Matrix*)A;
+    
     int n = csr->n;
-    int total_edges = csr->row_ptr[csr->n]; 
-
+    int total_edges = csr->row_ptr[n];
+    
     GrB_Index* row_ptr = (GrB_Index*)csr->row_ptr;
     GrB_Index* col_idx = (GrB_Index*)csr->col_idx;
+    
     GrB_Info info = GxB_Matrix_import_CSR(
         mat,
         GrB_BOOL,
-        n,                    
-        n,                    
-        &row_ptr,             
-        &col_idx,             
-        NULL,                 
-        n + 1,                
-        total_edges,         
-        0,                    
-        true,             
-        NULL,                 
-        NULL                  
+        n,
+        n,
+        &row_ptr,
+        &col_idx,
+        NULL,
+        n + 1,
+        total_edges,
+        0,
+        true,      // ← вместо GxB_TRUE
+        NULL,
+        NULL
     );
     
     return (info == GrB_SUCCESS) ? 0 : -1;
@@ -42,6 +53,8 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     
     int n = csr->n;
     GrB_Matrix A = NULL;
+    
+    // Явное приведение типа!
     if (csr_to_graphblas(csr, (void**)&A) != 0) {
         printf("Error: не удалось превратить CSR в GraphBLAS\n");
         return -1;
@@ -66,28 +79,36 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     }
     level[start_vertex] = 0;
     
+    // Создаём семиринг вручную
+    GrB_BinaryOp lor_op, land_op;
+    GrB_BinaryOp_new(&lor_op, lor_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
+    GrB_BinaryOp_new(&land_op, land_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
+    
+    GrB_Monoid monoid;
+    GrB_Monoid_new(&monoid, lor_op, (bool)0);
+    
     GrB_Semiring semiring;
-    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL);
+    GrB_Semiring_new(&semiring, monoid, land_op);
     
     int current_level = 0;
     GrB_Index nvals = 1;
     
     while (nvals > 0) {
         GrB_mxv(
-            new_frontier,                
-            visited,                      
-            NULL,                         
-            semiring,  
-            A,                            
-            frontier,                     
-            NULL                          
+            new_frontier,
+            visited,
+            NULL,
+            semiring,
+            A,
+            frontier,
+            NULL
         );
         
         GrB_eWiseAdd(
             visited,
             NULL,
             NULL,
-            GxB_LOR_BOOL,
+            lor_op,   
             visited,
             new_frontier,
             NULL
@@ -95,7 +116,7 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
         
         GrB_assign(
             level_vec,
-            new_frontier,                 
+            new_frontier,
             NULL,
             current_level + 1,
             GrB_ALL,
@@ -113,8 +134,11 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     for (int i = 0; i < n; i++) {
         GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
     }
-
-    GrB_Semiring_free(&semiring); 
+    
+    GrB_Semiring_free(&semiring);
+    GrB_Monoid_free(&monoid);
+    GrB_BinaryOp_free(&lor_op);
+    GrB_BinaryOp_free(&land_op);
     GrB_Matrix_free(&A);
     GrB_Vector_free(&level_vec);
     GrB_Vector_free(&frontier);
@@ -130,10 +154,11 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
     }
     
     int n = csr->n;
-    
     GrB_Matrix A = NULL;
+    
+    // Явное приведение типа!
     if (csr_to_graphblas(csr, (void**)&A) != 0) {
-        printf("Errro: не удалось импортировать CSR в GraphBLAS\n");
+        printf("Error: не удалось импортировать CSR в GraphBLAS\n");
         return -1;
     }
     
@@ -160,29 +185,37 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
             level[s] = 0;
         }
     }
-
+    
+    // Создаём семиринг вручную
+    GrB_BinaryOp lor_op, land_op;
+    GrB_BinaryOp_new(&lor_op, lor_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
+    GrB_BinaryOp_new(&land_op, land_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
+    
+    GrB_Monoid monoid;
+    GrB_Monoid_new(&monoid, lor_op, (bool)0);
+    
     GrB_Semiring semiring;
-    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL);
+    GrB_Semiring_new(&semiring, monoid, land_op);
     
     int current_level = 0;
-    GrB_Index nvals = num_sources;  
+    GrB_Index nvals = num_sources;
     
     while (nvals > 0) {
         GrB_mxv(
-            new_frontier,                 
-            visited,                      
-            NULL,                         
-            semiring,   
-            A,                            
-            frontier,                     
-            NULL                          
+            new_frontier,
+            visited,
+            NULL,
+            semiring,
+            A,
+            frontier,
+            NULL
         );
         
         GrB_eWiseAdd(
             visited,
             NULL,
             NULL,
-            GxB_LOR_BOOL,
+            lor_op,
             visited,
             new_frontier,
             NULL
@@ -190,7 +223,7 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
         
         GrB_assign(
             level_vec,
-            new_frontier,                 
+            new_frontier,
             NULL,
             current_level + 1,
             GrB_ALL,
@@ -208,8 +241,11 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
     for (int i = 0; i < n; i++) {
         GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
     }
-
+    
     GrB_Semiring_free(&semiring);
+    GrB_Monoid_free(&monoid);
+    GrB_BinaryOp_free(&lor_op);
+    GrB_BinaryOp_free(&land_op);
     GrB_Matrix_free(&A);
     GrB_Vector_free(&level_vec);
     GrB_Vector_free(&frontier);
