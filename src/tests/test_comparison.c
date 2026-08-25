@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "test_utils.h"
-#include "../classic_bfs.h"
-#include "../graphblas_bfs.h"
+#include "../main/classic_bfs.h"
+#include "../main/graphblas_bfs.h"
 
 void compare_single_source_classic_vs_graphblas() {
     printf("Test Single-Source BFS (Classic vs GraphBLAS)\n");
