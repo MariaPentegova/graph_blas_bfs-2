@@ -8,21 +8,26 @@ int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
     if (csr == NULL || A == NULL) {
         return -1;
     }
-    
+
+    int n = csr->n;
     int total_edges = csr->row_ptr[csr->n]; 
+
+    GrB_Index* row_ptr = (GrB_Index*)csr->row_ptr;
+    GrB_Index* col_idx = (GrB_Index*)csr->col_idx;
     GrB_Info info = GxB_Matrix_import_CSR(
         A,
         GrB_BOOL,
-        csr->n,
-        csr->n,
-        &csr->row_ptr,
-        &csr->col_idx,
-        NULL,
-        csr->n + 1,
-        total_edges,
-        0,
-        GrB_TRUE,
-        NULL
+        n,                    
+        n,                    
+        &row_ptr,             
+        &col_idx,             
+        NULL,                 
+        n + 1,                
+        total_edges,         
+        0,                    
+        GrB_TRUE,             
+        NULL,                 
+        NULL                  
     );
     
     return (info == GrB_SUCCESS) ? 0 : -1;
@@ -59,6 +64,9 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     }
     level[start_vertex] = 0;
     
+    GrB_Semiring semiring;
+    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL, GrB_BOOL);
+    
     int current_level = 0;
     GrB_Index nvals = 1;
     
@@ -67,7 +75,7 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
             new_frontier,                
             visited,                      
             NULL,                         
-            GrB_LOR_LAND_BOOL_SEMIRING,  
+            semiring,  
             A,                            
             frontier,                     
             NULL                          
@@ -77,7 +85,7 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
             visited,
             NULL,
             NULL,
-            GrB_LOR_BOOL,
+            GxB_LOR_BOOL,
             visited,
             new_frontier,
             NULL
@@ -103,7 +111,8 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
     for (int i = 0; i < n; i++) {
         GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
     }
-    
+
+    GrB_Semiring_free(&semiring); 
     GrB_Matrix_free(&A);
     GrB_Vector_free(&level_vec);
     GrB_Vector_free(&frontier);
@@ -149,6 +158,9 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
             level[s] = 0;
         }
     }
+
+    GrB_Semiring semiring;
+    GrB_Semiring_new(&semiring, GxB_LOR_BOOL, GxB_LAND_BOOL, GrB_BOOL);
     
     int current_level = 0;
     GrB_Index nvals = num_sources;  
@@ -158,7 +170,7 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
             new_frontier,                 
             visited,                      
             NULL,                         
-            GrB_LOR_LAND_BOOL_SEMIRING,   
+            semiring,   
             A,                            
             frontier,                     
             NULL                          
@@ -168,7 +180,7 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
             visited,
             NULL,
             NULL,
-            GrB_LOR_BOOL,
+            GxB_LOR_BOOL,
             visited,
             new_frontier,
             NULL
@@ -194,7 +206,8 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
     for (int i = 0; i < n; i++) {
         GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
     }
-    
+
+    GrB_Semiring_free(&semiring);
     GrB_Matrix_free(&A);
     GrB_Vector_free(&level_vec);
     GrB_Vector_free(&frontier);
