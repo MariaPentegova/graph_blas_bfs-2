@@ -1,8 +1,8 @@
-#include "graphblas_bfs.h"
-#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "graphblas_bfs.h"
+#include "utils.h"
 
 void graphblas_init() {
     GrB_init(GrB_NONBLOCKING);
