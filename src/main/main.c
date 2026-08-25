@@ -66,14 +66,14 @@ int main(int argc, char* argv[]) {
     
     printf("\n Classic Parent BFS \n");
     clock_gettime(CLOCK_MONOTONIC, &start);
-    classic_parent_bfs(csr, start_vertex, parent);
+    csr_parent_bfs(csr, start_vertex, parent);
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Время: %.6f сек\n", elapsed);
     
     printf("\n Classic Multisource BFS \n");
     clock_gettime(CLOCK_MONOTONIC, &start);
-    classic_multisource_bfs(csr, sources, num_sources, parent);
+    csr_multisource_bfs(csr, sources, num_sources, parent);
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Время: %.6f сек\n", elapsed);
