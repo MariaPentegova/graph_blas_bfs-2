@@ -129,10 +129,10 @@ make
 
 ```bash
 # Один запуск
-./bfs_analysis ../graphs/.. .mtx
+./bfs_benchmark ../graphs/com-Orkut.mtx
 
-# 10 запусков с усреднением
-./bfs_benchmark ../graphs/.. .mtx
+# Запуск на всех 6 графах
+./bfs_benchmark
 ```
 
 ### Запуск тестов
@@ -142,6 +142,9 @@ make
 ./test_graphblas_bfs     # только GraphBLAS тесты
 ./test_comparison        # сравнение результатов
 ```
+
+
+# ДАЛЬШЕ ПОКА НЕ ИЗМЕНИЛА, ИЗМЕНЮ ПОСЛЕ ЗАПУСКА НОВЫХ 6 ГРАФОВ 
 
 ## Гипотеза исследования(что проверяется бенчмарком)
 
