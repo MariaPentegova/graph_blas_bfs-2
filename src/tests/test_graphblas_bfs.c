@@ -78,7 +78,7 @@ void test_graphblas_level_bfs_correctness() {
         }
     }
     assert(all_have_parent == 1);
-    printf(Каждая вершина имеет соседа на уровень выше\n");
+    printf("Каждая вершина имеет соседа на уровень выше\n");
     
     free(level);
     delete_csr(csr);
