@@ -1,170 +1,89 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "utils.h"
 #include "classic_bfs.h"
 
-typedef struct {
-    int* data;
-    int front;
-    int rear;
-    int size;
-    int capacity;
-} Queue;
-
-static Queue* create_queue(int capacity) {
-    Queue* q = (Queue*)malloc(sizeof(Queue));
-    q->data = (int*)malloc(capacity * sizeof(int));
-    q->front = 0;
-    q->rear = -1;
-    q->size = 0;
-    q->capacity = capacity;
-    return q;
-}
-
-static void queue_push(Queue* q, int value) {
-    if (q->size < q->capacity) {
-        q->rear = (q->rear + 1) % q->capacity;
-        q->data[q->rear] = value;
-        q->size++;
-    }
-}
-
-static int queue_pop(Queue* q) {
-    if (q->size > 0) {
-        int value = q->data[q->front];
-        q->front = (q->front + 1) % q->capacity;
-        q->size--;
-        return value;
-    }
-    return -1;
-}
-
-static int queue_empty(Queue* q) {
-    return q->size == 0;
-}
-
-static void free_queue(Queue* q) {
-    if (q) {
-        if (q->data) free(q->data);
-        free(q);
-    }
-}
-
-// Single source BFS (только для связного графа или для компоненты)
-BFSResult* classic_bfs(int n, int* row_ptr, int* col_idx, int source) {
-    printf("[CLASSIC BFS] Starting from source %d\n", source);
-    
-    BFSResult* result = (BFSResult*)malloc(sizeof(BFSResult));
-    if (!result) return NULL;
-    
-    result->parent = (int*)malloc(n * sizeof(int));
-    result->level = (int*)malloc(n * sizeof(int));
-    result->visited = (int*)calloc(n, sizeof(int));
-    result->visited_count = 0;
-    
-    if (!result->parent || !result->level || !result->visited) {
-        if (result->parent) free(result->parent);
-        if (result->level) free(result->level);
-        if (result->visited) free(result->visited);
-        free(result);
-        return NULL;
-    }
-    
+void csr_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent) {
+    if (csr == NULL || parent == NULL) {
+        return;
+    }    
+    int n = csr->n;    
     for (int i = 0; i < n; i++) {
-        result->parent[i] = -1;
-        result->level[i] = -1;
+        parent[i] = -1; 
+    }
+    parent[start_vertex] = start_vertex;  // корень указывает на себя
+    
+    int* queue = (int*)malloc(n * sizeof(int));
+    if (queue == NULL) {
+        printf("Error: не удалось выделить память для очереди\n");
+        return;
     }
     
-    if (source < 0 || source >= n) {
-        return result;
-    }
+    int head = 0;  
+    int tail = 0; 
+    queue[tail++] = start_vertex;
     
-    Queue* q = create_queue(n);
-    if (!q) return result;
-    
-    result->visited[source] = 1;
-    result->level[source] = 0;
-    result->parent[source] = source;
-    result->visited_count = 1;
-    queue_push(q, source);
-    
-    while (!queue_empty(q)) {
-        int u = queue_pop(q);
+    while (head < tail) {
+        int v = queue[head++]; 
         
-        for (int i = row_ptr[u]; i < row_ptr[u + 1]; i++) {
-            int v = col_idx[i];
-            if (!result->visited[v]) {
-                result->visited[v] = 1;
-                result->level[v] = result->level[u] + 1;
-                result->parent[v] = u;
-                result->visited_count++;
-                queue_push(q, v);
+        int start = csr->row_ptr[v];
+        int end = csr->row_ptr[v + 1];
+        
+        for (int i = start; i < end; i++) {
+            int neighbor = csr->col_idx[i];
+            
+            // Если neighbor не посещена
+            if (parent[neighbor] == -1) {
+                parent[neighbor] = v;       
+                queue[tail++] = neighbor; 
             }
         }
     }
     
-    printf("[CLASSIC BFS] Visited %d nodes (component size)\n", result->visited_count);
-    
-    free_queue(q);
-    return result;
+    free(queue);
 }
 
-// Multi-source BFS - работает даже на несвязном графе
-// Каждый источник начинает свою компоненту связности
-void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, 
-                              int* sources, int num_sources, BFSResult* result) {
-    printf("[CLASSIC BFS] Multi-source from %d sources\n", num_sources);
-    
-    result->parent = (int*)malloc(n * sizeof(int));
-    result->level = (int*)malloc(n * sizeof(int));
-    result->visited = (int*)calloc(n, sizeof(int));
-    result->visited_count = 0;
-    
-    for (int i = 0; i < n; i++) {
-        result->parent[i] = -1;
-        result->level[i] = -1;
+void csr_multisource_bfs(CSRMatrix* csr, int* sources, int num_sources, int* parent) {
+    if (csr == NULL || parent == NULL || sources == NULL || num_sources == 0) {
+        return;
     }
     
-    Queue* q = create_queue(n);
+    int n = csr->n;
+    for (int i = 0; i < n; i++) {
+        parent[i] = -1;  
+    }
     
-    // Инициализация всеми источниками (каждый из своей компоненты)
+    int* queue = (int*)malloc(n * sizeof(int));
+    if (queue == NULL) {
+        printf("Error: не удалось выделить память для очереди\n");
+        return;
+    }
+    
+    int head = 0;
+    int tail = 0;
+    
     for (int i = 0; i < num_sources; i++) {
         int s = sources[i];
-        if (s >= 0 && s < n && !result->visited[s]) {
-            result->visited[s] = 1;
-            result->level[s] = 0;
-            result->parent[s] = s;
-            result->visited_count++;
-            queue_push(q, s);
-            printf("[CLASSIC BFS] Added source %d (component %d)\n", s, i);
+        if (s >= 0 && s < n) {
+            parent[s] = s;          
+            queue[tail++] = s;    
         }
     }
     
-    // BFS обходит все компоненты одновременно
-    while (!queue_empty(q)) {
-        int u = queue_pop(q);
+    while (head < tail) {
+        int v = queue[head++];  
+        int start = csr->row_ptr[v];
+        int end = csr->row_ptr[v + 1];
         
-        for (int i = row_ptr[u]; i < row_ptr[u + 1]; i++) {
-            int v = col_idx[i];
-            if (!result->visited[v]) {
-                result->visited[v] = 1;
-                result->level[v] = result->level[u] + 1;
-                result->parent[v] = u;
-                result->visited_count++;
-                queue_push(q, v);
+        for (int i = start; i < end; i++) {
+            int neighbor = csr->col_idx[i];
+            
+            if (parent[neighbor] == -1) {
+                parent[neighbor] = v;      
+                queue[tail++] = neighbor;   
             }
         }
     }
     
-    printf("[CLASSIC BFS] Multi-source visited %d nodes across all components\n", result->visited_count);
-    
-    free_queue(q);
-}
-
-void free_bfs_result(BFSResult* result) {
-    if (result) {
-        if (result->parent) free(result->parent);
-        if (result->level) free(result->level);
-        if (result->visited) free(result->visited);
-        free(result);
-    }
+    free(queue);
 }

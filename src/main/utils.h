@@ -1,23 +1,32 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
+struct Node {
+    int vertex;
+    struct Node* next;
+};
 
-typedef struct {
-    struct timeval start;
-    struct timeval end;
-} Timer;
+struct Graph {
+    int num_of_vertices;
+    struct Node** adjLists;
+};
 
-void timer_start(Timer* timer);
-double timer_elapsed_us(Timer* timer);
-double timer_elapsed_ms(Timer* timer);
+struct CSRMatrix {
+    int n;
+    int* row_ptr;
+    int* col_idx;
+};
 
-int load_matrix_market(const char* filename, 
-                        int** row_ptr, int** col_idx, double** values,
-                        int* n, int* nnz);
+typedef struct Node Node;
+typedef struct Graph Graph;
+typedef struct CSRMatrix CSRMatrix;
 
-void save_bfs_result(const char* filename, int* parent, int* level, int n, double time_ms, const char* algorithm);
+Graph* create_graph(int n);
+void add_edge(struct Graph* g, int src, int dest);
+Graph* load_matrix(const char* filename);
+CSRMatrix* graph_to_csr(Graph* g);
+int find_max_degree_vertex(Graph* g);
+void delete_graph(Graph* g);
+void delete_csr(CSRMatrix* csr);
 
 #endif

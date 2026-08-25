@@ -1,190 +1,260 @@
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-#include "graphblas_bfs.h"
+#include <stdlib.h>
+#include <stdbool.h>  
+#include <GraphBLAS.h>
 #include "utils.h"
+#include "graphblas_bfs.h"
 
-void graphblas_init() {
-    GrB_init(GrB_NONBLOCKING);
-    printf("[GRAPHBLAS] Initialized\n");
+void lor_bool(void* z, const void* x, const void* y) {
+    bool a = *(const bool*)x;
+    bool b = *(const bool*)y;
+    *(bool*)z = a || b;
 }
 
-void graphblas_finalize() {
-    GrB_finalize();
-    printf("[GRAPHBLAS] Finalized\n");
+void land_bool(void* z, const void* x, const void* y) {
+    bool a = *(const bool*)x;
+    bool b = *(const bool*)y;
+    *(bool*)z = a && b;
 }
 
-GraphBLASGraph* graphblas_create_graph(int n, int* row_ptr, int* col_idx, double* values, int nnz) {
-    printf("[GRAPHBLAS] Creating %d x %d matrix with %d edges\n", n, n, nnz);
+int csr_to_graphblas(CSRMatrix* csr, void** A) {
+    if (csr == NULL || A == NULL) {
+        return -1;
+    }
     
-    GraphBLASGraph* graph = (GraphBLASGraph*)malloc(sizeof(GraphBLASGraph));
-    graph->n = n;
-    graph->nnz = nnz;
+    // Приводим void** к GrB_Matrix*
+    GrB_Matrix* mat = (GrB_Matrix*)A;
     
-    // Сохраняем CSR для надёжного обхода
-    graph->row_ptr = (int*)malloc((n + 1) * sizeof(int));
-    graph->col_idx = (int*)malloc(nnz * sizeof(int));
-    memcpy(graph->row_ptr, row_ptr, (n + 1) * sizeof(int));
-    memcpy(graph->col_idx, col_idx, nnz * sizeof(int));
+    int n = csr->n;
+    int total_edges = csr->row_ptr[n];
     
-    // Создаём матрицу GraphBLAS
-    GrB_Matrix_new(&graph->adjacency, GrB_BOOL, n, n);
+    GrB_Index* row_ptr = (GrB_Index*)csr->row_ptr;
+    GrB_Index* col_idx = (GrB_Index*)csr->col_idx;
     
-    if (nnz == 0) return graph;
+    GrB_Info info = GxB_Matrix_import_CSR(
+        mat,
+        GrB_BOOL,
+        n,
+        n,
+        &row_ptr,
+        &col_idx,
+        NULL,
+        n + 1,
+        total_edges,
+        0,
+        true,      // ← вместо GxB_TRUE
+        NULL,
+        NULL
+    );
     
-    // Быстрое построение матрицы
-    GrB_Index* row_indices = (GrB_Index*)malloc(nnz * sizeof(GrB_Index));
-    GrB_Index* col_indices = (GrB_Index*)malloc(nnz * sizeof(GrB_Index));
-    bool* values_bool = (bool*)malloc(nnz * sizeof(bool));
+    return (info == GrB_SUCCESS) ? 0 : -1;
+}
+
+int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level) {
+    if (csr == NULL || level == NULL || start_vertex < 0 || start_vertex >= csr->n) {
+        return -1;
+    }
     
-    int idx = 0;
+    int n = csr->n;
+    GrB_Matrix A = NULL;
+    
+    // Явное приведение типа!
+    if (csr_to_graphblas(csr, (void**)&A) != 0) {
+        printf("Error: не удалось превратить CSR в GraphBLAS\n");
+        return -1;
+    }
+    
+    GrB_Vector level_vec = NULL;
+    GrB_Vector frontier = NULL;
+    GrB_Vector visited = NULL;
+    GrB_Vector new_frontier = NULL;
+    
+    GrB_Vector_new(&level_vec, GrB_INT32, n);
+    GrB_Vector_new(&frontier, GrB_BOOL, n);
+    GrB_Vector_new(&visited, GrB_BOOL, n);
+    GrB_Vector_new(&new_frontier, GrB_BOOL, n);
+    
+    GrB_Vector_setElement_INT32(level_vec, 0, start_vertex);
+    GrB_Vector_setElement_BOOL(frontier, 1, start_vertex);
+    GrB_Vector_setElement_BOOL(visited, 1, start_vertex);
+    
     for (int i = 0; i < n; i++) {
-        for (int j = row_ptr[i]; j < row_ptr[i + 1]; j++) {
-            row_indices[idx] = i;
-            col_indices[idx] = col_idx[j];
-            values_bool[idx] = true;
-            idx++;
-        }
+        level[i] = -1;
     }
+    level[start_vertex] = 0;
     
-    GrB_Matrix_build_BOOL(graph->adjacency, row_indices, col_indices, values_bool, nnz, GrB_LOR);
+    // Создаём семиринг вручную
+    GrB_BinaryOp lor_op, land_op;
+    GrB_BinaryOp_new(&lor_op, lor_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
+    GrB_BinaryOp_new(&land_op, land_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
     
-    free(row_indices);
-    free(col_indices);
-    free(values_bool);
+    GrB_Monoid monoid;
+    GrB_Monoid_new(&monoid, lor_op, (bool)0);
     
-    printf("[GRAPHBLAS] Matrix created successfully\n");
-    return graph;
-}
-
-void graphblas_free_graph(GraphBLASGraph* graph) {
-    if (graph) {
-        GrB_Matrix_free(&graph->adjacency);
-        free(graph->row_ptr);
-        free(graph->col_idx);
-        free(graph);
-    }
-}
-
-// КОРРЕКТНАЯ ВЕРСИЯ BFS - использует CSR для обхода, GraphBLAS для проверки (но на самом деле CSR надёжнее)
-int* graphblas_bfs(GraphBLASGraph* graph, int source, double* time_ms, int** level) {
-    Timer timer;
-    timer_start(&timer);
+    GrB_Semiring semiring;
+    GrB_Semiring_new(&semiring, monoid, land_op);
     
-    int n = graph->n;
+    int current_level = 0;
+    GrB_Index nvals = 1;
     
-    printf("[GRAPHBLAS BFS] Starting BFS from source %d\n", source);
-    
-    int* parent = (int*)malloc(n * sizeof(int));
-    int* levels = (int*)malloc(n * sizeof(int));
-    
-    for (int i = 0; i < n; i++) {
-        parent[i] = -1;
-        levels[i] = -1;
-    }
-    
-    if (n == 0 || source < 0 || source >= n) {
-        *level = levels;
-        *time_ms = timer_elapsed_ms(&timer);
-        return parent;
-    }
-    
-    // Используем очередь
-    int* queue = (int*)malloc(n * sizeof(int));
-    int front = 0, rear = 0;
-    
-    queue[rear++] = source;
-    parent[source] = source;
-    levels[source] = 0;
-    int visited_count = 1;
-    
-    // BFS через CSR (как в classic_bfs) - это самый надёжный способ
-    while (front < rear) {
-        int u = queue[front++];
+    while (nvals > 0) {
+        GrB_mxv(
+            new_frontier,
+            visited,
+            NULL,
+            semiring,
+            A,
+            frontier,
+            NULL
+        );
         
-        // Проходим по всем соседям через CSR
-        for (int i = graph->row_ptr[u]; i < graph->row_ptr[u + 1]; i++) {
-            int v = graph->col_idx[i];
-            if (parent[v] == -1) {
-                parent[v] = u;
-                levels[v] = levels[u] + 1;
-                queue[rear++] = v;
-                visited_count++;
-            }
-        }
+        GrB_eWiseAdd(
+            visited,
+            NULL,
+            NULL,
+            lor_op,   
+            visited,
+            new_frontier,
+            NULL
+        );
+        
+        GrB_assign(
+            level_vec,
+            new_frontier,
+            NULL,
+            current_level + 1,
+            GrB_ALL,
+            n,
+            NULL
+        );
+        
+        GrB_Vector_clear(frontier);
+        GrB_assign(frontier, NULL, NULL, new_frontier, GrB_ALL, n, NULL);
+        
+        GrB_Vector_nvals(&nvals, new_frontier);
+        current_level++;
     }
-    
-    printf("[GRAPHBLAS BFS] Visited %d nodes\n", visited_count);
-    
-    free(queue);
-    
-    *level = levels;
-    *time_ms = timer_elapsed_ms(&timer);
-    
-    return parent;
-}
-
-// MULTISOURCE BFS - корректная версия
-int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sources, 
-                                double* time_ms, int** level) {
-    Timer timer;
-    timer_start(&timer);
-    
-    int n = graph->n;
-    
-    printf("[GRAPHBLAS BFS] Multi-source BFS from %d sources\n", num_sources);
-    
-    int* parent = (int*)malloc(n * sizeof(int));
-    int* levels = (int*)malloc(n * sizeof(int));
     
     for (int i = 0; i < n; i++) {
-        parent[i] = -1;
-        levels[i] = -1;
+        GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
     }
     
-    if (n == 0 || num_sources == 0) {
-        *level = levels;
-        *time_ms = timer_elapsed_ms(&timer);
-        return parent;
+    GrB_Semiring_free(&semiring);
+    GrB_Monoid_free(&monoid);
+    GrB_BinaryOp_free(&lor_op);
+    GrB_BinaryOp_free(&land_op);
+    GrB_Matrix_free(&A);
+    GrB_Vector_free(&level_vec);
+    GrB_Vector_free(&frontier);
+    GrB_Vector_free(&visited);
+    GrB_Vector_free(&new_frontier);
+    
+    return 0;
+}
+
+int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_sources, int* level) {
+    if (csr == NULL || level == NULL || sources == NULL || num_sources <= 0) {
+        return -1;
     }
     
-    int* queue = (int*)malloc(n * sizeof(int));
-    int front = 0, rear = 0;
+    int n = csr->n;
+    GrB_Matrix A = NULL;
     
-    // Добавляем все источники
+    // Явное приведение типа!
+    if (csr_to_graphblas(csr, (void**)&A) != 0) {
+        printf("Error: не удалось импортировать CSR в GraphBLAS\n");
+        return -1;
+    }
+    
+    GrB_Vector level_vec = NULL;
+    GrB_Vector frontier = NULL;
+    GrB_Vector visited = NULL;
+    GrB_Vector new_frontier = NULL;
+    
+    GrB_Vector_new(&level_vec, GrB_INT32, n);
+    GrB_Vector_new(&frontier, GrB_BOOL, n);
+    GrB_Vector_new(&visited, GrB_BOOL, n);
+    GrB_Vector_new(&new_frontier, GrB_BOOL, n);
+    
+    for (int i = 0; i < n; i++) {
+        level[i] = -1;
+    }
+    
     for (int i = 0; i < num_sources; i++) {
         int s = sources[i];
-        if (s >= 0 && s < n && parent[s] == -1) {
-            queue[rear++] = s;
-            parent[s] = s;
-            levels[s] = 0;
+        if (s >= 0 && s < n) {
+            GrB_Vector_setElement_INT32(level_vec, 0, s);
+            GrB_Vector_setElement_BOOL(frontier, 1, s);
+            GrB_Vector_setElement_BOOL(visited, 1, s);
+            level[s] = 0;
         }
     }
     
-    printf("[GRAPHBLAS BFS] Added %d sources\n", rear);
+    // Создаём семиринг вручную
+    GrB_BinaryOp lor_op, land_op;
+    GrB_BinaryOp_new(&lor_op, lor_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
+    GrB_BinaryOp_new(&land_op, land_bool, GrB_BOOL, GrB_BOOL, GrB_BOOL);
     
-    int visited_count = rear;
+    GrB_Monoid monoid;
+    GrB_Monoid_new(&monoid, lor_op, (bool)0);
     
-    while (front < rear) {
-        int u = queue[front++];
+    GrB_Semiring semiring;
+    GrB_Semiring_new(&semiring, monoid, land_op);
+    
+    int current_level = 0;
+    GrB_Index nvals = num_sources;
+    
+    while (nvals > 0) {
+        GrB_mxv(
+            new_frontier,
+            visited,
+            NULL,
+            semiring,
+            A,
+            frontier,
+            NULL
+        );
         
-        for (int i = graph->row_ptr[u]; i < graph->row_ptr[u + 1]; i++) {
-            int v = graph->col_idx[i];
-            if (parent[v] == -1) {
-                parent[v] = u;
-                levels[v] = levels[u] + 1;
-                queue[rear++] = v;
-                visited_count++;
-            }
-        }
+        GrB_eWiseAdd(
+            visited,
+            NULL,
+            NULL,
+            lor_op,
+            visited,
+            new_frontier,
+            NULL
+        );
+        
+        GrB_assign(
+            level_vec,
+            new_frontier,
+            NULL,
+            current_level + 1,
+            GrB_ALL,
+            n,
+            NULL
+        );
+        
+        GrB_Vector_clear(frontier);
+        GrB_assign(frontier, NULL, NULL, new_frontier, GrB_ALL, n, NULL);
+        
+        GrB_Vector_nvals(&nvals, new_frontier);
+        current_level++;
     }
     
-    printf("[GRAPHBLAS BFS] Multi-source visited %d nodes\n", visited_count);
+    for (int i = 0; i < n; i++) {
+        GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
+    }
     
-    free(queue);
+    GrB_Semiring_free(&semiring);
+    GrB_Monoid_free(&monoid);
+    GrB_BinaryOp_free(&lor_op);
+    GrB_BinaryOp_free(&land_op);
+    GrB_Matrix_free(&A);
+    GrB_Vector_free(&level_vec);
+    GrB_Vector_free(&frontier);
+    GrB_Vector_free(&visited);
+    GrB_Vector_free(&new_frontier);
     
-    *level = levels;
-    *time_ms = timer_elapsed_ms(&timer);
-    
-    return parent;
+    return 0;
 }
