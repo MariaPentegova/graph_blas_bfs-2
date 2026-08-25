@@ -89,12 +89,12 @@ void run_benchmark(const char* graph_file) {
         double start, end;
         
         start = get_time_in_seconds();
-        classic_parent_bfs(csr, start_vertex, parent);
+        csr_parent_bfs(csr, start_vertex, parent);
         end = get_time_in_seconds();
         t_classic_parent[run] = (end - start) * 1e6;  
         
         start = get_time_in_seconds();
-        classic_multisource_bfs(csr, sources, num_sources, parent);
+        csr_multisource_bfs(csr, sources, num_sources, parent);
         end = get_time_in_seconds();
         t_classic_multisource[run] = (end - start) * 1e6;
         
