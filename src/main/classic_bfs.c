@@ -1,6 +1,6 @@
-#include "classic_bfs.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "classic_bfs.h"
 
 typedef struct {
     int* data;
