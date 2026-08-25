@@ -6,8 +6,13 @@
 #include "classic_bfs.h"   
 #include "graphblas_bfs.h" 
 
-int main() {
-    Graph* g = load_matrix("com-Amazon.mtx"); //граф для примера, нужно все потом тут загрузить
+int main(int argc, char* argv[]) {
+    const char* filename = "com-Amazon.mtx";  //граф для примера, нужно все потом тут загрузить
+    
+    if (argc == 2) {
+        filename = argv[1];  
+    }
+    Graph* g = load_matrix(filename); 
     if (g == NULL) {
         printf("Error: не удалось загрузить граф\n");
         return 1;
