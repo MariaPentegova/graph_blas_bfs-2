@@ -1,6 +1,6 @@
-#include "utils.h"
 #include <string.h>
 #include <ctype.h>
+#include "utils.h"
 
 void timer_start(Timer* timer) {
     gettimeofday(&timer->start, NULL);
