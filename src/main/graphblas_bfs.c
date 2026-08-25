@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>  
 #include <GraphBLAS.h>
 #include "utils.h"
 #include "graphblas_bfs.h"
@@ -26,7 +27,7 @@ int csr_to_graphblas(CSRMatrix* csr, void** A) {
         n + 1,                
         total_edges,         
         0,                    
-        GxB_TRUE,             
+        true,             
         NULL,                 
         NULL                  
     );
@@ -131,7 +132,7 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_source
     int n = csr->n;
     
     GrB_Matrix A = NULL;
-    if (csr_to_graphblas(csr, &A) != 0) {
+    if (csr_to_graphblas(csr, (void**)&A) != 0) {
         printf("Errro: не удалось импортировать CSR в GraphBLAS\n");
         return -1;
     }
