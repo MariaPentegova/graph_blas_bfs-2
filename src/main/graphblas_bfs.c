@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "graphblas_bfs.h"
 #include "utils.h"
+#include "graphblas_bfs.h"
 
 int csr_to_graphblas(CSRMatrix* csr, GrB_Matrix* A) {
     if (csr == NULL || A == NULL) {
