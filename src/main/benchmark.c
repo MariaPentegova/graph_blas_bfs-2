@@ -149,13 +149,25 @@ void run_benchmark(const char* graph_file) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s <graph.mtx>\n", argv[0]);
-        printf("Example: %s ../graphs/g1.mtx\n", argv[0]); //потом название графа впишу
-        return 1;
+    if (argc == 2) {
+        run_benchmark(argv[1]);
+        return 0;
     }
     
-    run_benchmark(argv[1]);
+    const char* graphs[] = {
+        "../graphs/com-Orkut.mtx",
+        "../graphs/soc-LiveJournal1.mtx",
+        "../graphs/roadNet-CA.mtx",
+        "../graphs/road_usa.mtx",
+        "../graphs/web-Google.mtx",
+        "../graphs/cit-Patents.mtx"
+    };
+    int num_graphs = 6;
+    printf("Running benchmarks on all 6 graphs\n");
+    
+    for (int i = 0; i < num_graphs; i++) {
+        run_benchmark(graphs[i]);
+    }
     
     return 0;
 }
