@@ -182,11 +182,6 @@ void test_graphblas_multisource_level_bfs_correctness() {
 }
 
 int main() {
-    /* graphblas_init()/graphblas_finalize() — ровно один раз за весь
-     * процесс, а не на каждый тест: повторный GrB_init() после
-     * GrB_finalize() завершается ошибкой в этой версии GraphBLAS.
-     * Строить/освобождать саму матрицу (build/free) можно и нужно в
-     * каждом тесте отдельно — с этим проблем нет. */
     if (graphblas_init() != 0) {
         return 1;
     }
