@@ -9,7 +9,7 @@
 #include "graphblas_bfs.h"
 
 static bool g_initialized = false;
-static GrB_Descriptor g_desc_visited_comp_replace = NULL; /* mask=visited, комплемент + replace */
+static GrB_Descriptor g_desc_visited_comp_replace = NULL; 
 static GrB_Monoid g_lor_monoid = NULL;
 static GrB_Semiring g_lor_land_semiring = NULL;
 
