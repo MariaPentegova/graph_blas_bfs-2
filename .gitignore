@@ -4,4 +4,3 @@ build/
 *.so
 *.a
 *.save
-graphs/*.mtx
