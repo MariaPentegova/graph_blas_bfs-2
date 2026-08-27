@@ -25,23 +25,28 @@ graphblas_multisource_level_bfs.
 
 ```text
 .
+├── .github/workflows
+│   ├── cmake.yml
+├── graphs/
 ├── src/
 │   ├── main/
+│   │   ├── benchmark.c
 │   │   ├── classic_bfs.c
 │   │   ├── classic_bfs.h
 │   │   ├── graphblas_bfs.c
 │   │   ├── graphblas_bfs.h
+│   │   ├── main.c
 │   │   ├── utils.c
-│   │   ├── utils.h
-│   │   └── main.c
+│   │   └── utils.h
 │   └── tests/
 │       ├── test_classic.c
 │       ├── test_comparison.c
 │       ├── test_graphblas.c
 │       ├── test_utils.c
 │       └── test_utils.h
-├── graphs/
+├── .gitignore
 ├── CMakeLists.txt
+├── LICENSE
 └── README.md
 ```
 
@@ -53,7 +58,7 @@ graphblas_multisource_level_bfs.
 Обход в ширину с использованием стандартной очереди.
 
 ```c
-void classic_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent)
+void csr_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent)
 ```
 
 **Параметры:**
@@ -117,7 +122,7 @@ int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sour
 sudo apt install libsuitesparse-dev cmake build-essential
 ```
 
-### Сборка
+### Сборка и запуск проекта
 
 ```bash
 mkdir build && cd build
@@ -127,13 +132,51 @@ make
 
 ### Запуск бенчмарка
 
+## Бенчмарк
+
+Программа `bfs_benchmark` выполняет **10 итераций** каждого алгоритма и вычисляет **среднее, минимальное и максимальное время** для статистической достоверности.
+
+### Что измеряется:
+- **Classic Parent BFS** — классический обход в ширину из одной вершины.
+- **Classic Multisource BFS** — классический BFS из 4 равномерно распределённых источников.
+- **GraphBLAS Level BFS** — обход в ширину через матрично-векторное умножение (один источник).
+- **GraphBLAS Multisource Level BFS** — то же, но из 4 источников.
+
+### Выходные данные:
+
+После завершения всех итераций программа выводит таблицу:
+
+| Metric(в мкс) | Avg | Min | Max |
+| :--- | :--- | :--- | :--- |
+| **Classic Parent BFS** | :--- | :--- | :--- |
+| **Classic Multisource BFS** | :--- | :--- | :--- |
+| **GraphBLAS Level BFS** | :--- | :--- | :--- |
+| **GraphBLAS Multisource BFS** | :--- | :--- | :--- |
+
+- **Avg** — среднее время за 10 запусков.
+- **Min** — лучший (минимальный по времени) результат.
+- **Max** — худший (максимальный) результат.
+
+Затем программа вычисляет **ускорения (speedups)** между реализациями:
+
+```text
+Speedups
+GraphBLAS Level / Classic Parent: nx (где n - во сколько раз первая реализация быстрее второй)
+GraphBLAS Multisource / Classic Multisource: nx
+Classic Multisource / Classic Parent: nx
+GraphBLAS Multisource / GraphBLAS Level: nx
+```
+
 ```bash
-# Один запуск
+# Вывод времени выполнения каждой из 4 реализаций bfs для конкретного графа
+./bfs_analysis ../graphs/com-Orkut.mtx
+
+# Запуск описанного ранее бенчмарка для конкретного графа
 ./bfs_benchmark ../graphs/com-Orkut.mtx
 
-# Запуск на всех 6 графах
+# Запуск на всех 7 графах
 ./bfs_benchmark
-```
+
 
 ### Запуск тестов
 
