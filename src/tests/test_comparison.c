@@ -7,10 +7,10 @@
 
 void compare_single_source_classic_vs_graphblas() {
     printf("Test Single-Source BFS (Classic vs GraphBLAS)\n");
-    
+
     CSRMatrix* csr = create_test_csr();
     assert(csr != NULL);
-    
+
     int n = csr->n;
     int* parent = (int*)malloc(n * sizeof(int));
     int* level_classic = (int*)malloc(n * sizeof(int));
@@ -18,14 +18,14 @@ void compare_single_source_classic_vs_graphblas() {
     assert(parent != NULL);
     assert(level_classic != NULL);
     assert(level_graphblas != NULL);
-    
+
     Graph* temp_g = create_test_graph();
     int start_vertex = find_max_degree_vertex(temp_g);
     delete_graph(temp_g);
     printf("Стартовая вершина (max степень): %d\n", start_vertex);
-    
+
     csr_parent_bfs(csr, start_vertex, parent);
-    
+
     for (int i = 0; i < n; i++) {
         if (parent[i] == -1) {
             level_classic[i] = -1;
@@ -42,14 +42,17 @@ void compare_single_source_classic_vs_graphblas() {
             level_classic[i] = expected[start_vertex][i];
         }
     }
-    
-    graphblas_level_bfs(csr, start_vertex, level_graphblas);
-    
+
+    void* A = NULL;
+    assert(graphblas_build_matrix(csr, &A) == 0);
+    graphblas_level_bfs(csr, A, start_vertex, level_graphblas);
+    graphblas_free_matrix(A);
+
     for (int i = 0; i < n; i++) {
         assert(level_classic[i] == level_graphblas[i]);
     }
     printf("  Результаты Classic и GraphBLAS совпадают: OK\n");
-    
+
     free(parent);
     free(level_classic);
     free(level_graphblas);
@@ -59,10 +62,10 @@ void compare_single_source_classic_vs_graphblas() {
 
 void compare_multisource_classic_vs_graphblas() {
     printf("Test Multisource BFS (Classic vs GraphBLAS)\n");
-    
+
     CSRMatrix* csr = create_test_csr();
     assert(csr != NULL);
-    
+
     int n = csr->n;
     int* parent = (int*)malloc(n * sizeof(int));
     int* level_classic = (int*)malloc(n * sizeof(int));
@@ -70,32 +73,30 @@ void compare_multisource_classic_vs_graphblas() {
     assert(parent != NULL);
     assert(level_classic != NULL);
     assert(level_graphblas != NULL);
-    
 
     int num_sources = 4;
     int* sources = (int*)malloc(num_sources * sizeof(int));
     assert(sources != NULL);
-    
+
     int step = n / num_sources;
     for (int i = 0; i < num_sources; i++) {
         sources[i] = i * step;
     }
-    
+
     printf("Источники: ");
     for (int i = 0; i < num_sources; i++) {
         printf("%d ", sources[i]);
     }
     printf("\n");
-    
+
     csr_multisource_bfs(csr, sources, num_sources, parent);
-    
+
     for (int i = 0; i < n; i++) {
         if (parent[i] == -1) {
             level_classic[i] = -1;
         } else if (parent[i] == i) {
             level_classic[i] = 0;
         } else {
-
             if (i == 4) {
                 level_classic[i] = 1;
             } else {
@@ -103,14 +104,17 @@ void compare_multisource_classic_vs_graphblas() {
             }
         }
     }
-    
-    graphblas_multisource_level_bfs(csr, sources, num_sources, level_graphblas);
-    
+
+    void* A = NULL;
+    assert(graphblas_build_matrix(csr, &A) == 0);
+    graphblas_multisource_level_bfs(csr, A, sources, num_sources, level_graphblas);
+    graphblas_free_matrix(A);
+
     for (int i = 0; i < n; i++) {
         assert(level_classic[i] == level_graphblas[i]);
     }
     printf("Результаты Classic и GraphBLAS совпадают: OK\n");
-    
+
     free(parent);
     free(level_classic);
     free(level_graphblas);
@@ -120,7 +124,16 @@ void compare_multisource_classic_vs_graphblas() {
 }
 
 int main() {
+    /* graphblas_init()/graphblas_finalize() — ровно один раз за весь
+     * процесс (см. пояснение в test_graphblas.c). */
+    if (graphblas_init() != 0) {
+        return 1;
+    }
+
     compare_single_source_classic_vs_graphblas();
     compare_multisource_classic_vs_graphblas();
+
+    graphblas_finalize();
     return 0;
 }
+

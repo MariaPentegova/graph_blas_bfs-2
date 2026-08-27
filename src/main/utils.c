@@ -83,8 +83,13 @@ Graph* load_matrix(const char* filename) {
         return NULL;
     }
     
-    if (strstr(line, "symmetric") == NULL) {
-        printf("Error: поддерживается только symmetric (неориентированный)\n");
+    int is_symmetric = 0;
+    if (strstr(line, "symmetric") != NULL) {
+        is_symmetric = 1;
+    } else if (strstr(line, "general") != NULL) {
+        is_symmetric = 0;
+    } else {
+        printf("Error: неподдерживаемый тип (только symmetric/general)\n");
         fclose(f);
         return NULL;
     }
@@ -126,9 +131,21 @@ Graph* load_matrix(const char* filename) {
         }
         src--;
         dest--;
-        add_edge(graph, src, dest);
+        if (is_symmetric) {
+            add_edge(graph, src, dest);
+        } else {
+            Node* newNode = (Node*)malloc(sizeof(Node));
+            if (newNode == NULL) {
+                printf("Error: не удалось выделить память для ребра (%d, %d)\n", src, dest);
+                delete_graph(graph);
+                fclose(f);
+                return NULL;
+            }
+            newNode->vertex = dest;
+            newNode->next = graph->adjLists[src];
+            graph->adjLists[src] = newNode;
+        }
     }
-    
     fclose(f);
     printf("Граф загружен: %d вершин, %d ребер\n", rows, entries);
     return graph;
