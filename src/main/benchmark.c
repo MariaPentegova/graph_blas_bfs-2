@@ -181,10 +181,9 @@ int main(int argc, char* argv[]) {
     const char* graphs[] = {
         "../graphs/cit-Patents.mtx",
         "../graphs/com-Amazon.mtx",
-        "../graphs/delaunay_n16.mtx",
-        "../graphs/kron_g500-logn16.mtx",
-        "../graphs/road_usa.mtx",
+        "../graphs/com-Orkut.mtx",
         "../graphs/roadNet-CA.mtx",
+        "../graphs/road_usa.mtx",
         "../graphs/soc-LiveJournal1.mtx",
         "../graphs/web-Google.mtx"
     };
