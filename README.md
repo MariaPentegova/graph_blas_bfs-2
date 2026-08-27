@@ -54,7 +54,7 @@ graphblas_multisource_level_bfs.
 
 ##  BFS с построением дерева обхода (parent BFS)
 
-### Классическая версия
+### Classic версия
 Обход в ширину с использованием стандартной очереди.
 
 ```c
@@ -64,17 +64,18 @@ void csr_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent)
 **Параметры:**
 * `csr` — граф в CSR-формате
 * `start_vertex` — стартовая вершина
-* `parent` — массив родителей (заполняется функцией)
+* `parent` — массив родителей
 
 ### Версия GraphBLAS
 Итеративное умножение вектора фронта на матрицу смежности графа.
 
 ```c
-int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level)
+int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* level)
 ```
 
 **Параметры:**
 * `csr` — граф в CSR-формате
+* `A_handle` - матрица GraphBLAS (построенная заранее)
 * `start_vertex` — стартовая вершина
 * `level` — массив расстояний (заполняется функцией)
 
@@ -82,11 +83,11 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level)
 
 ##  Multi‑source BFS
 
-### Классическая версия
+### Classic версия
 Использует обычную очередь, но изначально в неё добавляются все заданные источники.
 
 ```c
-void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, int* sources, int num_sources, BFSResult* result);
+void csr_multisource_bfs(CSRMatrix* csr, void* A_handle, int* sources, int num_sources, int* parent);
 ```
 
 * **Принцип работы:** обход распространяется одновременно от всех источников. Родитель вершины - источник, который достиг её первым.
@@ -97,7 +98,7 @@ void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, int* sources, in
 Вектор фронта инициализируется всеми источниками одновременно.
 
 ```c
-int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sources, double* time_ms, int** level);
+int* graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_sources, double* time_ms, int** level);
 ```
 
 * **Принцип работы:** на каждой итерации выполняется умножение вектора фронта на матрицу смежности. Все новые вершины обрабатываются параллельно за одну матричную операцию.
@@ -113,14 +114,45 @@ int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sour
 
 ---
 
-## Сборка и запуск
+## Сборка и установка проекта
 
 ### Требования
-Для установки необходимых зависимостей в Ubuntu/Debian выполните:
+Для сборки и запуска проекта необходимы:
+* **CMake** (версия 3.10 или выше)
+* **Компилятор** с поддержкой стандарта C11 (`gcc`, `clang`)
+* **SuiteSparse:GraphBLAS** — библиотека для разреженных матричных вычислений
+
+---
+
+### Установка SuiteSparse:GraphBLAS
+
+#### Способ 1: Установка из исходников (рекомендуемый)
+Этот способ гарантирует установку самой свежей версии библиотеки.
 
 ```bash
+# Клонирование репозитория SuiteSparse
+git clone https://github.com/DrTimothyAldenDavis/SuiteSparse.git
+cd SuiteSparse/GraphBLAS
+make
+sudo make install
+
+# Обновление кэша динамических библиотек
+sudo ldconfig
+```
+
+После успешной установки компоненты будут доступны по путям:
+* **Заголовочные файлы:** `/usr/local/include/suitesparse/GraphBLAS.h`
+* **Библиотека:** `/usr/local/lib/libgraphblas.so`
+
+#### Способ 2: Установка через пакетный менеджер (Ubuntu/Debian)
+Быстрый способ установки стандартной версии из репозитория ОС:
+
+```bash
+sudo apt update
 sudo apt install libsuitesparse-dev cmake build-essential
 ```
+
+> **Примечание:** Пакетный менеджер вашей ОС может установить устаревшую версию библиотеки. Для получения максимальной производительности и актуальных функций используйте **Способ 1**.
 
 ### Сборка и запуск проекта
 
@@ -235,7 +267,7 @@ GraphBLAS Multisource / GraphBLAS Level: nx
 | **com-Amazon** | 38&nbsp;967 | 31&nbsp;974 | 61&nbsp;923 | 62&nbsp;144 |  **0.63x** (Classic) |
 
 
-## 📊 Анализ результатов
+## Анализ результатов
 
 ### 1. Большие ориентированные графы с широкими фронтами: победа GraphBLAS
 `com-Orkut` (**5.45x**) и `soc-LiveJournal1` (**5.35x**) — это ориентированные социальные сети с огромным количеством рёбер (117M и 69M) и широкими фронтами BFS. Благодаря высокой степени вершин и направленным рёбрам, на каждом уровне BFS обрабатываются тысячи и миллионы вершин, что позволяет GraphBLAS эффективно распараллеливать вычисления через матрично-векторное умножение. Ускорение достигает 5–6 раз.

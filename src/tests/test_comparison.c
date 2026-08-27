@@ -124,8 +124,6 @@ void compare_multisource_classic_vs_graphblas() {
 }
 
 int main() {
-    /* graphblas_init()/graphblas_finalize() — ровно один раз за весь
-     * процесс (см. пояснение в test_graphblas.c). */
     if (graphblas_init() != 0) {
         return 1;
     }
