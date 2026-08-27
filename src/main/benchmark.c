@@ -187,8 +187,8 @@ int main(int argc, char* argv[]) {
         "../graphs/soc-LiveJournal1.mtx",
         "../graphs/web-Google.mtx"
     };
-    int num_graphs = 8;
-    printf("Running benchmarks on all 8 graphs\n");
+    int num_graphs = 7;
+    printf("Running benchmarks on all 7 graphs\n");
 
     for (int i = 0; i < num_graphs; i++) {
         run_benchmark(graphs[i]);
