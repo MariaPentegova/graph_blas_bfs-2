@@ -43,15 +43,13 @@ int compare_levels(int* level1, int* level2, int n) {
 }
 
 int check_parent_correctness(int* parent, int n, int start_vertex) {
-    // 1. Корень указывает на себя
+    // корень указывает на себя
     if (parent[start_vertex] != start_vertex) return 0;
 
-    // 2. Все вершины посещены
     for (int i = 0; i < n; i++) {
         if (parent[i] == -1) return 0;
     }
 
-    // 3. Нет петель у не-корневых
     for (int i = 0; i < n; i++) {
         if (i != start_vertex && parent[i] == i) {
             return 0;
