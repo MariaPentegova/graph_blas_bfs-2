@@ -54,7 +54,7 @@ graphblas_multisource_level_bfs.
 
 ##  BFS с построением дерева обхода (parent BFS)
 
-### Классическая версия
+### Classic версия
 Обход в ширину с использованием стандартной очереди.
 
 ```c
@@ -64,17 +64,18 @@ void csr_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent)
 **Параметры:**
 * `csr` — граф в CSR-формате
 * `start_vertex` — стартовая вершина
-* `parent` — массив родителей (заполняется функцией)
+* `parent` — массив родителей
 
 ### Версия GraphBLAS
 Итеративное умножение вектора фронта на матрицу смежности графа.
 
 ```c
-int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level)
+int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* level)
 ```
 
 **Параметры:**
 * `csr` — граф в CSR-формате
+* `A_handle`
 * `start_vertex` — стартовая вершина
 * `level` — массив расстояний (заполняется функцией)
 
@@ -82,11 +83,11 @@ int graphblas_level_bfs(CSRMatrix* csr, int start_vertex, int* level)
 
 ##  Multi‑source BFS
 
-### Классическая версия
+### Classic версия
 Использует обычную очередь, но изначально в неё добавляются все заданные источники.
 
 ```c
-void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, int* sources, int num_sources, BFSResult* result);
+void csr_multisource_bfs(CSRMatrix* csr, void* A_handle, int* sources, int num_sources, int* parent);
 ```
 
 * **Принцип работы:** обход распространяется одновременно от всех источников. Родитель вершины - источник, который достиг её первым.
@@ -97,7 +98,7 @@ void classic_bfs_multisource(int n, int* row_ptr, int* col_idx, int* sources, in
 Вектор фронта инициализируется всеми источниками одновременно.
 
 ```c
-int* graphblas_bfs_multisource(GraphBLASGraph* graph, int* sources, int num_sources, double* time_ms, int** level);
+int* graphblas_multisource_level_bfs(CSRMatrix* csr, int* sources, int num_sources, double* time_ms, int** level);
 ```
 
 * **Принцип работы:** на каждой итерации выполняется умножение вектора фронта на матрицу смежности. Все новые вершины обрабатываются параллельно за одну матричную операцию.
