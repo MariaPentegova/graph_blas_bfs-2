@@ -279,7 +279,7 @@ GraphBLAS Multisource / GraphBLAS Level: nx
 
 ## Анализ результатов
 
-### Универсального решения нет. Выбор алгоритма зависит от:
+### Выбор алгоритма зависит от:
 
 1. **Ширина фронтов BFS** — самый важный фактор.
    - Широкие фронты → **GraphBLAS**
@@ -301,3 +301,10 @@ GraphBLAS Multisource / GraphBLAS Level: nx
 **Главный итог:** Универсального решения нет — выбор алгоритма зависит от топологии, ширины фронтов и размера конкретного графа. Ориентированность сама по себе не является гарантией эффективности GraphBLAS.
 
 >  **Скачивание графов:** Если необходимые графы отсутствуют в локальной директории `graphs/`, вы можете загрузить их напрямую из репозитория [SuiteSparse Matrix Collection](https://sparse.tamu.edu/).
+
+## Литература 
+
+1. POSIX.1-2017. IEEE Std 1003.1-2017 (Revision of IEEE Std 1003.1-2008). System Interfaces, clock_getres, clock_gettime, clock_settime — clock and timer functions. Электронный ресурс — [The Open Group](https://pubs.opengroup.org/onlinepubs/9699919799/functions/clock_getres.html).
+2. Алгоритмы на графах. Обход графа методом поиска в ширину (BFS). Электронный ресурс — [Хабр](https://habr.com/ru/articles/969450/), 2025.
+3. Intel oneAPI Math Kernel Library. Compressed Sparse Row (CSR) Format. Электронный ресурс — [Intel Corporation](https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-dpcpp/2026-0/compressed-sparse-row-csr.html), 2026.
+4. The GraphBLAS C API Specification. Version 2.1. Электронный ресурс — [GraphBLAS Forum](https://graphblas.org/docs/GraphBLAS_API_C_v2.1.0.pdf), 2023.
