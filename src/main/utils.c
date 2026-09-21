@@ -7,13 +7,13 @@
 Graph* create_graph(int n){
     Graph* graph = (Graph*)malloc(sizeof(Graph));
     if (graph == NULL) {
-        printf("Error: не удалось выделить память для графа\n");
+        printf("Error: failed to allocate memory for the graph\n");
         return NULL;
     }
     graph->num_of_vertices = n;
     graph->adjLists = (Node**)malloc(n * sizeof(Node*));
     if (graph->adjLists == NULL) {
-        printf("Error: не удалось выделить память для списков смежности\n");
+        printf("Error: failed to allocate memory for adjacency lists\n");
         free(graph);
         return NULL;
     }
@@ -30,14 +30,14 @@ void add_edge(Graph* g, int src, int dest) {
     }
     
     if (src < 0 || src >= g->num_of_vertices || dest < 0 || dest >= g->num_of_vertices) {
-        printf("Error: некорректные индексы вершин (%d, %d)\n", src, dest);
+        printf("Error: invalid vertex indices (%d, %d)\n", src, dest);
         return;
     }
     
     // src -> dest
     Node* newNode = (Node*)malloc(sizeof(Node));
     if (newNode == NULL) {
-        printf("Ошибка: не удалось выделить память для ребра (%d, %d)\n", src, dest);
+        printf("Error: failed to allocate memory for the edge (%d, %d)\n", src, dest);
         return;
     }
     newNode->vertex = dest;
@@ -47,7 +47,7 @@ void add_edge(Graph* g, int src, int dest) {
     // dest -> src
     newNode = (Node*)malloc(sizeof(Node));
     if (newNode == NULL) {
-        printf("Error: не удалось выделить память для обратного ребра (%d, %d)\n", dest, src);
+        printf("Error: failed to allocate memory for the reverse edge (%d, %d)\n", dest, src);
         return;
     }
     newNode->vertex = src;
@@ -59,26 +59,26 @@ void add_edge(Graph* g, int src, int dest) {
 Graph* load_matrix(const char* filename) {
     FILE* f = fopen(filename, "r");
     if (f == NULL) {
-        printf("Error: не удалось открыть файл %s\n", filename);
+        printf("Error: failed to open file %s\n", filename);
         return NULL;
     }
     
     char line[256];
     
     if (fgets(line, sizeof(line), f) == NULL) {
-        printf("Error: пустой файл\n");
+        printf("Error: empty file\n");
         fclose(f);
         return NULL;
     }
     
     if (strstr(line, "%%MatrixMarket") == NULL) {
-        printf("Error: неверный формат (не .mtx)\n");
+        printf("Error: wrong format (не .mtx)\n");
         fclose(f);
         return NULL;
     }
 
     if (strstr(line, "coordinate") == NULL) {
-        printf("Error: поддерживается только coordinate\n");
+        printf("Error: only coordinate is supported\n");
         fclose(f);
         return NULL;
     }
@@ -89,13 +89,13 @@ Graph* load_matrix(const char* filename) {
     } else if (strstr(line, "general") != NULL) {
         is_symmetric = 0;
     } else {
-        printf("Error: неподдерживаемый тип (только symmetric/general)\n");
+        printf("Error: unsupported type (symmetric/general only)\n");
         fclose(f);
         return NULL;
     }
     
     if (strstr(line, "pattern") == NULL) {
-        printf("Error: поддерживается только pattern (без весов)\n");
+        printf("Error: only pattern is supported (without weights)\n");
         fclose(f);
         return NULL;
     }
@@ -108,13 +108,13 @@ Graph* load_matrix(const char* filename) {
     
     int rows, cols, entries;
     if (sscanf(line, "%d %d %d", &rows, &cols, &entries) != 3) {
-        printf("Error: не удалось прочитать размеры\n");
+        printf("Error: failed to read dimensions\n");
         fclose(f);
         return NULL;
     }
     
     if (rows != cols) {
-        printf("Error: матрица не квадратная (%d x %d)\n", rows, cols);
+        printf("Error: matrix is ​​not square (%d x %d)\n", rows, cols);
         fclose(f);
         return NULL;
     }
@@ -124,7 +124,7 @@ Graph* load_matrix(const char* filename) {
     int src, dest;
     for (int i = 0; i < entries; i++) {
         if (fscanf(f, "%d %d", &src, &dest) != 2) {
-            printf("Error: не удалось прочитать ребро %d\n", i);
+            printf("Error: failed to read edge %d\n", i);
             delete_graph(graph);
             fclose(f);
             return NULL;
@@ -136,7 +136,7 @@ Graph* load_matrix(const char* filename) {
         } else {
             Node* newNode = (Node*)malloc(sizeof(Node));
             if (newNode == NULL) {
-                printf("Error: не удалось выделить память для ребра (%d, %d)\n", src, dest);
+                printf("Error: failed to allocate memory for the edge (%d, %d)\n", src, dest);
                 delete_graph(graph);
                 fclose(f);
                 return NULL;
@@ -147,7 +147,7 @@ Graph* load_matrix(const char* filename) {
         }
     }
     fclose(f);
-    printf("Граф загружен: %d вершин, %d ребер\n", rows, entries);
+    printf("Graph loaded: %d vertices, %d edges\n", rows, entries);
     return graph;
 }
 

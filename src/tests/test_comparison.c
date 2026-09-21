@@ -22,7 +22,7 @@ void compare_single_source_classic_vs_graphblas() {
     Graph* temp_g = create_test_graph();
     int start_vertex = find_max_degree_vertex(temp_g);
     delete_graph(temp_g);
-    printf("Стартовая вершина (max степень): %d\n", start_vertex);
+    printf("Start vertex (max degree): %d\n", start_vertex);
 
     csr_parent_bfs(csr, start_vertex, parent);
 
@@ -51,13 +51,13 @@ void compare_single_source_classic_vs_graphblas() {
     for (int i = 0; i < n; i++) {
         assert(level_classic[i] == level_graphblas[i]);
     }
-    printf("  Результаты Classic и GraphBLAS совпадают: OK\n");
+    printf("Results of Classic и GraphBLAS are equal: OK\n");
 
     free(parent);
     free(level_classic);
     free(level_graphblas);
     delete_csr(csr);
-    printf("Тест Single-Source сравнения пройден!\n\n");
+    printf("Test Single-Source compare passed!\n\n");
 }
 
 void compare_multisource_classic_vs_graphblas() {
@@ -113,14 +113,14 @@ void compare_multisource_classic_vs_graphblas() {
     for (int i = 0; i < n; i++) {
         assert(level_classic[i] == level_graphblas[i]);
     }
-    printf("Результаты Classic и GraphBLAS совпадают: OK\n");
+    printf("Results of Classic и GraphBLAS are equal: OK\n");
 
     free(parent);
     free(level_classic);
     free(level_graphblas);
     free(sources);
     delete_csr(csr);
-    printf("Тест Multisource сравнения пройден!\n\n");
+    printf("Test Multisource compare passed!\n\n");
 }
 
 int main() {
