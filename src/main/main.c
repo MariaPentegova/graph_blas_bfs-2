@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
         sources[i] = i * step;
     }
 
-    printf("Источники для multisource BFS: ");
+    printf("Sources for multisource BFS: ");
     for (int i = 0; i < num_sources; i++) {
         printf("%d ", sources[i]);
     }
