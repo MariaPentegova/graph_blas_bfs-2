@@ -5,7 +5,7 @@
 #include "../main/graphblas_bfs.h"
 
 void test_graphblas_level_bfs_correctness() {
-    printf("\n Test: GraphBLAS Level BFS Correctness \n");
+    printf("\n Test GraphBLAS Level BFS Correctness \n");
 
     CSRMatrix* csr = create_test_csr();
     assert(csr != NULL);
@@ -18,7 +18,7 @@ void test_graphblas_level_bfs_correctness() {
     int start_vertex = find_max_degree_vertex(temp_g);
     delete_graph(temp_g);
 
-    printf("  Стартовая вершина (макс. степень): %d\n", start_vertex);
+    printf(" Start vertex (max degree): %d\n", start_vertex);
 
     void* A = NULL;
     assert(graphblas_build_matrix(csr, &A) == 0);
@@ -34,10 +34,10 @@ void test_graphblas_level_bfs_correctness() {
         }
     }
     assert(all_visited == 1);
-    printf("Все вершины посещены\n");
+    printf("All vertices are visited\n");
 
     assert(level[start_vertex] == 0);
-    printf("Расстояние до старта = 0\n");
+    printf("Distance to the start = 0\n");
 
     int expected_levels_0[5] = {0, 1, 2, 1, 2};
     int expected_levels_1[5] = {1, 0, 1, 2, 1};
@@ -46,12 +46,12 @@ void test_graphblas_level_bfs_correctness() {
         for (int i = 0; i < n; i++) {
             assert(level[i] == expected_levels_0[i]);
         }
-        printf("Расстояния корректны для start=0\n");
+        printf("Distances are valid for start=0\n");
     } else if (start_vertex == 1) {
         for (int i = 0; i < n; i++) {
             assert(level[i] == expected_levels_1[i]);
         }
-        printf("Расстояния корректны для start=1\n");
+        printf("Distances are valid for start=1\n");
     }
 
     for (int i = 0; i < n; i++) {
@@ -59,7 +59,7 @@ void test_graphblas_level_bfs_correctness() {
             assert(level[i] < n);
         }
     }
-    printf("Все расстояния корректны\n");
+    printf("All distances are valid\n");
 
     int all_have_parent = 1;
     for (int i = 0; i < n; i++) {
@@ -81,12 +81,12 @@ void test_graphblas_level_bfs_correctness() {
         }
     }
     assert(all_have_parent == 1);
-    printf("Каждая вершина имеет соседа на уровень выше\n");
+    printf("Each vertex has a neighbor one level higher.\n");
 
     graphblas_free_matrix(A);
     free(level);
     delete_csr(csr);
-    printf("Тест GraphBLAS Level BFS пройден!\n");
+    printf("Test GraphBLAS Level BFS passed!\n");
 }
 
 void test_graphblas_multisource_level_bfs_correctness() {
@@ -108,7 +108,7 @@ void test_graphblas_multisource_level_bfs_correctness() {
         sources[i] = i * step;
     }
 
-    printf("  Источники: ");
+    printf(" Sources: ");
     for (int i = 0; i < num_sources; i++) {
         printf("%d ", sources[i]);
     }
@@ -128,7 +128,7 @@ void test_graphblas_multisource_level_bfs_correctness() {
         }
     }
     assert(all_visited == 1);
-    printf("Все вершины посещены\n");
+    printf("All vertices are visited\n");
 
     int all_sources_zero = 1;
     for (int i = 0; i < num_sources; i++) {
@@ -138,21 +138,21 @@ void test_graphblas_multisource_level_bfs_correctness() {
         }
     }
     assert(all_sources_zero == 1);
-    printf("Все источники имеют distance=0\n");
+    printf("All sources have distance=0\n");
 
     assert(level[0] == 0);
     assert(level[1] == 0);
     assert(level[2] == 0);
     assert(level[3] == 0);
     assert(level[4] == 1);
-    printf("Расстояния корректны для данного графа\n");
+    printf("The distances are correct for this graph.\n");
 
     for (int i = 0; i < n; i++) {
         if (level[i] != -1) {
             assert(level[i] < n);
         }
     }
-    printf("Все расстояния корректны\n");
+    printf("All distances are valid\n");
 
     int* level_single = (int*)malloc(n * sizeof(int));
     assert(level_single != NULL);
@@ -161,7 +161,7 @@ void test_graphblas_multisource_level_bfs_correctness() {
     for (int i = 0; i < n; i++) {
         assert(level[i] <= level_single[i]);
     }
-    printf("Multisource расстояния <= Single-source\n");
+    printf("Multisource distances <= Single-source\n");
 
     int found_smaller = 0;
     for (int i = 0; i < n; i++) {
@@ -171,14 +171,14 @@ void test_graphblas_multisource_level_bfs_correctness() {
         }
     }
     assert(found_smaller == 1);
-    printf("Есть вершины с меньшим расстоянием в multisource\n");
+    printf("There are vertices with a smaller distance in the multi-source case.\n");
 
     graphblas_free_matrix(A);
     free(level);
     free(level_single);
     free(sources);
     delete_csr(csr);
-    printf("Тест GraphBLAS Multisource Level BFS пройден!\n");
+    printf("Test GraphBLAS Multisource Level BFS passed!\n");
 }
 
 int main() {
@@ -190,7 +190,7 @@ int main() {
     test_graphblas_multisource_level_bfs_correctness();
 
     graphblas_finalize();
-    printf("Все тесты GraphBLAS BFS пройдены!\n");
+    printf("All Tests GraphBLAS BFS passed!\n");
     return 0;
 }
 
