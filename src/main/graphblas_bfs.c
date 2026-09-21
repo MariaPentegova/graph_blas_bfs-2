@@ -17,11 +17,11 @@ int graphblas_init(void) {
 
     GrB_Info info = GrB_init(GrB_NONBLOCKING);
     if (info != GrB_SUCCESS) {
-        fprintf(stderr, "GrB_init завершился с ошибкой (%d)\n", (int)info);
+        fprintf(stderr, "GrB_init failed with an error (%d)\n", (int)info);
         return -1;
     }
 
-    printf("GraphBLAS инициализирован\n");
+    printf("GraphBLAS initialized\n");
 
     GrB_Descriptor_new(&g_desc_visited_comp_replace);
     GrB_Descriptor_set(g_desc_visited_comp_replace, GrB_OUTP, GrB_REPLACE);
@@ -50,7 +50,7 @@ int graphblas_build_matrix(CSRMatrix* csr, void** A_out) {
         return -1;
     }
     if (!g_initialized) {
-        fprintf(stderr, "Error: graphblas_init() нужно вызвать до graphblas_build_matrix()\n");
+        fprintf(stderr, "Error: graphblas_init() must be called before graphblas_build_matrix()\n");
         return -1;
     }
 
@@ -66,7 +66,7 @@ int graphblas_build_matrix(CSRMatrix* csr, void** A_out) {
         free(row_ptr);
         free(col_idx);
         free(vals);
-        fprintf(stderr, "Error: не удалось выделить память под импорт в GraphBLAS\n");
+        fprintf(stderr, "Error: failed to allocate memory for import in GraphBLAS\n");
         return -1;
     }
     for (GrB_Index i = 0; i <= n; i++) {
@@ -95,7 +95,7 @@ int graphblas_build_matrix(CSRMatrix* csr, void** A_out) {
         free(row_ptr);
         free(col_idx);
         free(vals);
-        fprintf(stderr, "GxB_Matrix_import_CSR завершился с ошибкой (%d)\n", (int)info);
+        fprintf(stderr, "GxB_Matrix_import_CSR failed with error (%d)\n", (int)info);
         return -1;
     }
     return 0;
@@ -115,7 +115,7 @@ int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* l
         return -1;
     }
     if (!g_initialized) {
-        fprintf(stderr, "Error: graphblas_init() нужно вызвать до graphblas_level_bfs()\n");
+        fprintf(stderr, "Error: graphblas_init() must be called before graphblas_level_bfs()\n");
         return -1;
     }
 
@@ -202,7 +202,7 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, void* A_handle,
         return -1;
     }
     if (!g_initialized) {
-        fprintf(stderr, "Error: graphblas_init() нужно вызвать до graphblas_multisource_level_bfs()\n");
+        fprintf(stderr, "Error: graphblas_init() must be called before graphblas_multisource_level_bfs()\n");
         return -1;
     }
 

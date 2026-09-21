@@ -80,7 +80,7 @@ void run_benchmark(const char* graph_file) {
     void* gb_matrix = NULL;
     double t_build = get_time_in_seconds();
     if (graphblas_build_matrix(csr, &gb_matrix) != 0) {
-        printf("Error: не удалось построить GraphBLAS-матрицу\n");
+        printf("Error: failed to construct GraphBLAS matrix\n");
         free(sources);
         free(parent);
         free(level);
@@ -89,7 +89,7 @@ void run_benchmark(const char* graph_file) {
         return;
     }
     double build_elapsed = get_time_in_seconds() - t_build;
-    printf("GraphBLAS: построение матрицы (один раз, не входит в замеры ниже): %.6f сек\n",
+    printf("GraphBLAS: matrix construction (performed once, not included in the measurements below): %.6f сек\n",
            build_elapsed);
 
     graphblas_level_bfs(csr, gb_matrix, start_vertex, level);
@@ -168,7 +168,7 @@ void run_benchmark(const char* graph_file) {
 
 int main(int argc, char* argv[]) {
     if (graphblas_init() != 0) {
-        printf("Error: не удалось инициализировать GraphBLAS\n");
+        printf("Error: failed to initialize GraphBLAS\n");
         return 1;
     }
 
