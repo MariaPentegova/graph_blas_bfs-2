@@ -43,7 +43,6 @@ int compare_levels(int* level1, int* level2, int n) {
 }
 
 int check_parent_correctness(int* parent, int n, int start_vertex) {
-    // корень указывает на себя
     if (parent[start_vertex] != start_vertex) return 0;
 
     for (int i = 0; i < n; i++) {
