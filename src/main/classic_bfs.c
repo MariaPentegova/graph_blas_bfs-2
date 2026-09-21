@@ -31,8 +31,7 @@ void csr_parent_bfs(CSRMatrix* csr, int start_vertex, int* parent) {
         
         for (int i = start; i < end; i++) {
             int neighbor = csr->col_idx[i];
-            
-            // Если neighbor не посещена
+
             if (parent[neighbor] == -1) {
                 parent[neighbor] = v;       
                 queue[tail++] = neighbor; 
