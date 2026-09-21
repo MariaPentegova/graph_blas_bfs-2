@@ -18,7 +18,7 @@ void test_classic_parent_bfs_correctness() {
     int start_vertex = find_max_degree_vertex(temp_g);
     delete_graph(temp_g);
 
-    printf("  Стартовая вершина (макс. степень): %d\n", start_vertex);
+    printf(" Start vertex (max degree): %d\n", start_vertex);
 
     csr_parent_bfs(csr, start_vertex, parent);
 
@@ -30,10 +30,10 @@ void test_classic_parent_bfs_correctness() {
         }
     }
     assert(all_visited == 1);
-    printf("Все вершины посещены\n");
+    printf("All summits visited\n");
 
     assert(parent[start_vertex] == start_vertex);
-    printf("Корень указывает на себя\n");
+    printf("The root points to itself.\n");
 
     int no_self_loops = 1;
     for (int i = 0; i < n; i++) {
@@ -43,7 +43,7 @@ void test_classic_parent_bfs_correctness() {
         }
     }
     assert(no_self_loops == 1);
-    printf("Нет петель у не корневых вершин\n");
+    printf("Non-root vertices have no loops.\n");
 
     int expected_parent_0[5] = {0, 0, 1, 0, 1};
 
@@ -51,24 +51,24 @@ void test_classic_parent_bfs_correctness() {
         for (int i = 0; i < n; i++) {
             assert(parent[i] == expected_parent_0[i]);
         }
-        printf("Родители корректны для start=0\n");
+        printf("Parents are valid for start=0\n");
     } else if (start_vertex == 1) {
         assert(parent[0] == 1);
         assert(parent[2] == 1);
         assert(parent[3] == 0 || parent[3] == 4);
         assert(parent[4] == 1);
-        printf(" Родители корректны для start=1\n");
+        printf(" Parents are valid for start=1\n");
     }
     for (int i = 0; i < n; i++) {
         if (i != start_vertex && parent[i] != -1) {
             assert(parent[i] != i);
         }
     }
-    printf("Все родители корректны\n");
+    printf("All parents are valid\n");
 
     free(parent);
     delete_csr(csr);
-    printf("Тест Classic Parent BFS пройден!\n");
+    printf("Test Classic Parent BFS passed!\n");
 }
 
 void test_classic_multisource_bfs_correctness() {
@@ -106,7 +106,7 @@ void test_classic_multisource_bfs_correctness() {
         }
     }
     assert(all_visited == 1);
-    printf("Все вершины посещены\n");
+    printf("All vertices visited\n");
 
     int all_sources_root = 1;
     for (int i = 0; i < num_sources; i++) {
@@ -116,7 +116,7 @@ void test_classic_multisource_bfs_correctness() {
         }
     }
     assert(all_sources_root == 1);
-    printf("Все источники указывают на себя\n");
+    printf("All sources point to themselves.\n");
 
     int no_self_loops = 1;
     for (int i = 0; i < n; i++) {
@@ -133,7 +133,7 @@ void test_classic_multisource_bfs_correctness() {
         }
     }
     assert(no_self_loops == 1);
-    printf("Нет петель у не корневых вершин\n");
+    printf("Non-root vertices have no loops.\n");
 
     int expected_parent[5] = {0, 1, 2, 3, 1};
 
@@ -144,7 +144,7 @@ void test_classic_multisource_bfs_correctness() {
             assert(parent[4] == 1 || parent[4] == 3);
         }
     }
-    printf("Родители корректны для данного графа\n");
+    printf("The parents are valid for this graph.\n");
 
     for (int i = 0; i < n; i++) {
         if (parent[i] != -1) {
@@ -160,18 +160,18 @@ void test_classic_multisource_bfs_correctness() {
             }
         }
     }
-    printf("Нет циклов в parent\n");
+    printf("No cycles in parent\n");
 
     free(parent);
     free(sources);
     delete_csr(csr);
-    printf("Тест Classic Multisource BFS пройден!\n");
+    printf("Test Classic Multisource BFS passed!\n");
 }
 
 int main() {
     test_classic_parent_bfs_correctness();
     test_classic_multisource_bfs_correctness();
 
-    printf("Все тесты Classic BFS пройдены!\n");
+    printf("All Tests Classic BFS [assed!\n");
     return 0;
 }
