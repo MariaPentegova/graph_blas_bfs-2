@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 #include <GraphBLAS.h>
 #include "utils.h"
 #include "graphblas_bfs.h"
@@ -24,11 +21,7 @@ int graphblas_init(void) {
         return -1;
     }
 
-#ifdef _OPENMP
-    printf("GraphBLAS инициализирован с параллелизацией (%d потоков)\n", omp_get_max_threads());
-#else
     printf("GraphBLAS инициализирован\n");
-#endif
 
     GrB_Descriptor_new(&g_desc_visited_comp_replace);
     GrB_Descriptor_set(g_desc_visited_comp_replace, GrB_OUTP, GrB_REPLACE);
