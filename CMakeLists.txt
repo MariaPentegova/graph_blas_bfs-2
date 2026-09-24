@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
-project(GraphBFS VERSION 1.0.0)
+project(GraphBFS VERSION 1.0.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# Принудительно включаем оптимизацию -O3 для GCC и Clang
+
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-O3)
+    add_definitions(-DNDEBUG)
+    message(STATUS "Compiler optimization forced to: -O3")
+endif()
 
 # Поиск GraphBLAS (без find_package)
 
