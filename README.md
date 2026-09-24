@@ -189,6 +189,39 @@ int graphblas_multisource_level_bfs(
 
 ---
 
+## Данные эксперимента и инициализация Git LFS
+
+В каталоге `graphs/` используются большие файлы Matrix Market (`.mtx`). Они хранятся в репозитории с использованием **Git LFS (Git Large File Storage)**. Если не выполнить шаги ниже, вместо реальных графов загрузятся только текстовые указатели (текстовые заглушки), и программа бенчмарка завершится с ошибкой чтения.
+
+### Требования для работы с графами
+Перед клонированием репозитория или началом работы убедитесь, что в вашей системе установлен плагин `git-lfs`.
+
+**Инструкция по развертыванию:**
+
+1. Установите плагин в операционную систему:
+   ```bash
+   sudo apt update && sudo apt install git-lfs
+   ```
+
+2. Инициализируйте Git LFS, склонируйте проект и выкачайте реальные датасеты:
+   ```bash
+   # Если вы ещё не клонировали репозиторий:
+   git clone <ссылка_на_ваш_репо>
+   cd <имя_папки_репо>
+   
+   # Активация плагина и загрузка оригинальных тяжелых файлов:
+   git lfs install
+   git lfs pull
+   ```
+
+3. Для проверки того, что файлы успешно скачались и находятся под управлением Git LFS, можно выполнить команду:
+   ```bash
+   git lfs ls-files
+   ```
+
+> Если `.mtx`-файлы уже были добавлены в отслеживание Git LFS при создании репозитория, дополнительно выполнять команду `git lfs track` после клонирования не требуется — достаточно сделать `git lfs pull`.
+
+
 ## Сборка
 
 ### Требования
@@ -440,3 +473,20 @@ ctest
 Эксперимент на семи графах SuiteSparse показал, что эффективность каждого подхода **напрямую зависит от структуры входных данных**. GraphBLAS получил значительное преимущество на социальных графах с высокой плотностью связей, в то время как классический BFS лидировал на дорожных сетях и разреженных структурах.
 
 Для дальнейшего исследования проекта будет полезно внедрить сбор статистики по размерам фронтов BFS на каждом уровне, чтобы сопоставить эти данные с детальным временем выполнения итераций.
+
+## Источники и литература
+
+1. **The GraphBLAS C API Specification** / GraphBLAS Forum. — Version 2.1, 2023. 
+   [Официальная спецификация PDF](https://graphblas.org/docs/GraphBLAS_API_C_v2.1.0.pdf)
+2. **SuiteSparse:GraphBLAS** / Davis, T. A. — Официальный репозиторий проекта.
+   [GitHub — GraphBLAS](https://github.com/DrTimothyAldenDavis/GraphBLAS)
+3. **LAGraph** / GraphBLAS.org. — Официальный репозиторий проекта.
+   [GitHub — LAGraph](https://github.com/GraphBLAS/LAGraph)
+4. **Boost Graph Library** / Boost. — Официальная документация библиотеки.
+   [Boost.Graph Documentation](https://www.boost.org/library/latest/graph/)
+5. **The University of Florida Sparse Matrix Collection** / Davis, T. A., Hu, Y. // ACM Transactions on Mathematical Software, 38(1), 2011.
+   [SuiteSparse Matrix Collection](https://sparse.tamu.edu/)
+6. **CTest Documentation** / Kitware. — Руководство по автоматизации тестирования.
+   [CMake/CTest Manual](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
+7. **Git Large File Storage** / Git LFS. — Документация расширения для работы с большими файлами.
+   [Официальный сайт Git LFS](https://git-lfs.com/)
