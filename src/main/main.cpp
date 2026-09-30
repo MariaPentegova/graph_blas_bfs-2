@@ -1,13 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "utils.h"
-#include "classic_bfs.h"
-#include "graphblas_bfs.h"
+
+#include <boost/graph/compressed_sparse_row_graph.hpp>
+#include <boost/graph/breadth_first_search.hpp>
+#include <boost/graph/visitors.hpp>
+#include <vector>
+#include <utility>
+
+extern "C" {
+    #include "utils.h"
+    #include "classic_bfs.h"
+    #include "graphblas_bfs.h"
+}
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        printf("Error: file for analysis not written");
+        printf("Error: file for analysis not written\n");
         return 1;
     }
     const char* filename = argv[1];
@@ -92,6 +101,39 @@ int main(int argc, char* argv[]) {
     printf("\n Classic Parent BFS \n");
     clock_gettime(CLOCK_MONOTONIC, &start);
     csr_parent_bfs(csr, start_vertex, parent);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    printf("Time: %.6f сек\n", elapsed);
+
+    printf("\n Boost BGL Parent BFS \n");
+
+    for (int i = 0; i < csr->n; i++) parent[i] = -1;
+    parent[start_vertex] = start_vertex;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    int total_edges = csr->row_ptr[csr->n];
+    std::vector<std::pair<int, int>> edge_list;
+    edge_list.reserve(total_edges);
+
+    for (int u = 0; u < csr->n; ++u) {
+        int row_start = csr->row_ptr[u];
+        int row_end = csr->row_ptr[u + 1];
+        for (int i = row_start; i < row_end; ++i) {
+            int v = csr->col_idx[i];
+            edge_list.push_back(std::make_pair(u, v));
+        }
+    }
+
+    typedef boost::compressed_sparse_row_graph<boost::directedS, boost::no_property, boost::no_property, boost::no_property, int, int> BGLGraph;
+    BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
+
+    boost::breadth_first_search(bgl_g, start_vertex,
+                                boost::visitor(boost::make_bfs_visitor(
+                                    boost::record_predecessors(parent, boost::on_tree_edge())
+                                ))
+    );
+
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Time: %.6f сек\n", elapsed);

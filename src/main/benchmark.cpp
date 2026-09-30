@@ -1,9 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "utils.h"
-#include "classic_bfs.h"
-#include "graphblas_bfs.h"
+
+#include <boost/graph/compressed_sparse_row_graph.hpp>
+#include <boost/graph/breadth_first_search.hpp>
+#include <boost/graph/visitors.hpp>
+#include <vector>
+#include <utility>
+
+extern "C" {
+    #include "utils.h"
+    #include "classic_bfs.h"
+    #include "graphblas_bfs.h"
+}
 
 double get_time_in_seconds() {
     struct timespec ts;
@@ -97,6 +106,7 @@ void run_benchmark(const char* graph_file) {
 
     int num_runs = 10;
     double t_classic_parent[10];
+    double t_bgl_parent[10]; // Массив для таймингов Boost BGL
     double t_classic_multisource[10];
     double t_graphblas_level[10];
     double t_graphblas_multisource[10];
@@ -110,6 +120,34 @@ void run_benchmark(const char* graph_file) {
         csr_parent_bfs(csr, start_vertex, parent);
         end = get_time_in_seconds();
         t_classic_parent[run] = (end - start) * 1e6;
+
+        start = get_time_in_seconds();
+        for (int i = 0; i < csr->n; i++) parent[i] = -1;
+        parent[start_vertex] = start_vertex;
+
+        int total_edges = csr->row_ptr[csr->n];
+        std::vector<std::pair<int, int>> edge_list;
+        edge_list.reserve(total_edges);
+
+        for (int u = 0; u < csr->n; ++u) {
+            int row_start = csr->row_ptr[u];
+            int row_end = csr->row_ptr[u + 1];
+            for (int i = row_start; i < row_end; ++i) {
+                int v = csr->col_idx[i];
+                edge_list.push_back(std::make_pair(u, v));
+            }
+        }
+
+        typedef boost::compressed_sparse_row_graph<boost::directedS, boost::no_property, boost::no_property, boost::no_property, int, int> BGLGraph;
+        BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
+
+        boost::breadth_first_search(bgl_g, start_vertex,
+                                    boost::visitor(boost::make_bfs_visitor(
+                                        boost::record_predecessors(parent, boost::on_tree_edge())
+                                    ))
+        );
+        end = get_time_in_seconds();
+        t_bgl_parent[run] = (end - start) * 1e6;
 
         start = get_time_in_seconds();
         csr_multisource_bfs(csr, sources, num_sources, parent);
@@ -134,6 +172,10 @@ void run_benchmark(const char* graph_file) {
            average(t_classic_parent, num_runs),
            min_value(t_classic_parent, num_runs),
            max_value(t_classic_parent, num_runs));
+    printf("Boost BGL Parent BFS      | %6.0f | %6.0f | %6.0f\n",
+           average(t_bgl_parent, num_runs),
+           min_value(t_bgl_parent, num_runs),
+           max_value(t_bgl_parent, num_runs));
     printf("Classic Multisource BFS   | %6.0f | %6.0f | %6.0f\n",
            average(t_classic_multisource, num_runs),
            min_value(t_classic_multisource, num_runs),
@@ -150,6 +192,10 @@ void run_benchmark(const char* graph_file) {
     printf("\n Speedups \n");
     printf("GraphBLAS Level / Classic Parent: %.2fx\n",
            average(t_classic_parent, num_runs) / average(t_graphblas_level, num_runs));
+    printf("GraphBLAS Level / Boost BGL Parent: %.2fx\n",
+           average(t_bgl_parent, num_runs) / average(t_graphblas_level, num_runs));
+    printf("Boost BGL Parent / Classic Parent: %.2fx\n",
+           average(t_classic_parent, num_runs) / average(t_bgl_parent, num_runs));
     printf("GraphBLAS Multisource / Classic Multisource: %.2fx\n",
            average(t_classic_multisource, num_runs) / average(t_graphblas_multisource, num_runs));
     printf("Classic Multisource / Classic Parent: %.2fx\n",
@@ -197,5 +243,3 @@ int main(int argc, char* argv[]) {
     graphblas_finalize();
     return 0;
 }
-
-

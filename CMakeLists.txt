@@ -1,11 +1,26 @@
 cmake_minimum_required(VERSION 3.10)
-project(GraphBFS VERSION 1.0.0)
+project(GraphBFS VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Поиск GraphBLAS (без find_package)
+# Настройки для C++ (нужно для Boost)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Принудительно включаем максимальную оптимизацию -O3 для GCC и Clang (и для C, и для C++)
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-O3)
+    add_definitions(-DNDEBUG)
+    message(STATUS "Compiler optimization forced to: -O3")
+endif()
+
+find_package(Boost REQUIRED)
+if(Boost_FOUND)
+    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
+endif()
+
+# Поиск GraphBLAS (без find_package)
 find_path(GRAPHBLAS_INCLUDE_DIR
     NAMES GraphBLAS.h
     PATHS /usr/local/include/suitesparse /usr/include/suitesparse /usr/local/include /usr/include
@@ -28,11 +43,9 @@ endif()
 message(STATUS "GraphBLAS include: ${GRAPHBLAS_INCLUDE_DIR}")
 message(STATUS "GraphBLAS library: ${GRAPHBLAS_LIBRARY}")
 
-# Пути к файлам
 set(MAIN_DIR ${PROJECT_SOURCE_DIR}/src/main)
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/src/tests)
 
-# Исходные файлы
 set(UTILS_SOURCES
     ${MAIN_DIR}/utils.c
 )
@@ -50,9 +63,8 @@ set(TEST_UTILS_SOURCES
 )
 
 
-# Основной исполняемый файл
 add_executable(bfs_analysis
-    ${MAIN_DIR}/main.c
+    ${MAIN_DIR}/main.cpp
     ${UTILS_SOURCES}
     ${CLASSIC_BFS_SOURCES}
     ${GRAPHBLAS_BFS_SOURCES}
@@ -61,6 +73,7 @@ add_executable(bfs_analysis
 target_include_directories(bfs_analysis PRIVATE
     ${MAIN_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(bfs_analysis
@@ -71,7 +84,7 @@ target_link_libraries(bfs_analysis
 
 # Бенчмарк
 add_executable(bfs_benchmark
-    ${MAIN_DIR}/benchmark.c
+    ${MAIN_DIR}/benchmark.cpp
     ${UTILS_SOURCES}
     ${CLASSIC_BFS_SOURCES}
     ${GRAPHBLAS_BFS_SOURCES}
