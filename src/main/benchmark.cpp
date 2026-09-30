@@ -106,7 +106,7 @@ void run_benchmark(const char* graph_file) {
 
     int num_runs = 10;
     double t_classic_parent[10];
-    double t_bgl_parent[10]; // Массив для таймингов Boost BGL
+    double t_bgl_parent[10]; 
     double t_classic_multisource[10];
     double t_graphblas_level[10];
     double t_graphblas_multisource[10];
