@@ -16,7 +16,7 @@ extern "C" {
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        printf("Error: file for analysis not written\n");
+        printf("Error: you didn't provide a file for analysis.\n");
         return 1;
     }
     const char* filename = argv[1];
