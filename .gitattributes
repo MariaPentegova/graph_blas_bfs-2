@@ -1,1 +1,2 @@
+# Configure Git LFS tracking for Matrix Market graph files
 *.mtx filter=lfs diff=lfs merge=lfs -text
