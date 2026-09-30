@@ -166,8 +166,8 @@ void run_benchmark(const char* graph_file) {
     }
 
     printf("\n Results (microseconds) \n");
-    printf("Metric                    | Avg    | Min    | Max\n");
-    printf("--------------------------|--------|--------|--------\n");
+    printf("Metric                    | Avg   | Min   | Max\n");
+    printf("--------------------------|-------|-------|--------\n");
     printf("Classic Parent BFS        | %6.0f | %6.0f | %6.0f\n",
            average(t_classic_parent, num_runs),
            min_value(t_classic_parent, num_runs),
