@@ -8,16 +8,25 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Принудительно включаем максимальную оптимизацию -O3 для GCC и Clang (и для C, и для C++)
+# Принудительно включаем максимальную оптимизацию -O3 для GCC и Clang
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-O3)
     add_definitions(-DNDEBUG)
     message(STATUS "Compiler optimization forced to: -O3")
 endif()
 
+# Современный поиск Boost (отключаем устаревшую политику CMP0167 для новых CMake)
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
+
 find_package(Boost REQUIRED)
+
 if(Boost_FOUND)
     message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
+else()
+    # Альтернативный вариант, если FindBoost полностью заблокирован в системе
+    set(Boost_INCLUDE_DIRS "/usr/include")
 endif()
 
 # Поиск GraphBLAS (без find_package)
@@ -62,7 +71,7 @@ set(TEST_UTILS_SOURCES
     ${TESTS_DIR}/test_utils.c
 )
 
-
+# 1. Основной исполняемый файл
 add_executable(bfs_analysis
     ${MAIN_DIR}/main.cpp
     ${UTILS_SOURCES}
@@ -82,7 +91,7 @@ target_link_libraries(bfs_analysis
     pthread
 )
 
-# Бенчмарк
+# 2. Бенчмарк
 add_executable(bfs_benchmark
     ${MAIN_DIR}/benchmark.cpp
     ${UTILS_SOURCES}
@@ -93,6 +102,7 @@ add_executable(bfs_benchmark
 target_include_directories(bfs_benchmark PRIVATE
     ${MAIN_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО, чтобы бенчмарк видел Boost
 )
 
 target_link_libraries(bfs_benchmark
@@ -115,6 +125,7 @@ target_include_directories(test_classic_bfs PRIVATE
     ${MAIN_DIR}
     ${TESTS_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
 )
 
 target_link_libraries(test_classic_bfs
@@ -133,6 +144,7 @@ target_include_directories(test_graphblas_bfs PRIVATE
     ${MAIN_DIR}
     ${TESTS_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
 )
 
 target_link_libraries(test_graphblas_bfs
@@ -153,6 +165,7 @@ target_include_directories(test_comparison PRIVATE
     ${MAIN_DIR}
     ${TESTS_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
 )
 
 target_link_libraries(test_comparison
