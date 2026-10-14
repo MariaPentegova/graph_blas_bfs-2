@@ -9,22 +9,41 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Release
+            build_type: Release
+            flags: ""
+          - name: Debug + sanitizers
+            build_type: Debug
+            flags: "-fsanitize=address,undefined -fno-omit-frame-pointer"
+
+    name: ${{ matrix.name }}
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libsuitesparse-dev cmake build-essential libboost-graph-dev
-    
+
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
-    
+      run: >
+        cmake -B ${{github.workspace}}/build
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_C_FLAGS="${{ matrix.flags }}"
+        -DCMAKE_CXX_FLAGS="${{ matrix.flags }}"
+
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config Release
-    
+      run: cmake --build ${{github.workspace}}/build
+
     - name: Run tests
+      env:
+        UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       run: |
         cd ${{github.workspace}}/build
         ctest --output-on-failure

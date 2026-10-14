@@ -4,3 +4,5 @@ build/
 *.so
 *.a
 *.save
+.DS_Store
+._*

@@ -4,179 +4,73 @@ project(GraphBFS VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Настройки для C++ (нужно для Boost)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Принудительно включаем максимальную оптимизацию -O3 для GCC и Clang
-if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-O3)
-    add_definitions(-DNDEBUG)
-    message(STATUS "Compiler optimization forced to: -O3")
+get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT IS_MULTI_CONFIG AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
+endif()
+if(NOT IS_MULTI_CONFIG)
+    message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
-# Современный поиск Boost (отключаем устаревшую политику CMP0167 для новых CMake)
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra)
+endif()
+
 if(POLICY CMP0167)
     cmake_policy(SET CMP0167 OLD)
 endif()
-
 find_package(Boost REQUIRED)
+message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
 
-if(Boost_FOUND)
-    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
-else()
-    # Альтернативный вариант, если FindBoost полностью заблокирован в системе
-    set(Boost_INCLUDE_DIRS "/usr/include")
-endif()
+find_package(Threads REQUIRED)
 
-# Поиск GraphBLAS (без find_package)
 find_path(GRAPHBLAS_INCLUDE_DIR
     NAMES GraphBLAS.h
     PATHS /usr/local/include/suitesparse /usr/include/suitesparse /usr/local/include /usr/include
     PATH_SUFFIXES suitesparse
 )
-
 find_library(GRAPHBLAS_LIBRARY
     NAMES graphblas libgraphblas
     PATHS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu
 )
-
 if(NOT GRAPHBLAS_INCLUDE_DIR)
     message(FATAL_ERROR "Could not find GraphBLAS.h")
 endif()
-
 if(NOT GRAPHBLAS_LIBRARY)
     message(FATAL_ERROR "Could not find graphblas library")
 endif()
-
 message(STATUS "GraphBLAS include: ${GRAPHBLAS_INCLUDE_DIR}")
 message(STATUS "GraphBLAS library: ${GRAPHBLAS_LIBRARY}")
 
 set(MAIN_DIR ${PROJECT_SOURCE_DIR}/src/main)
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/src/tests)
 
-set(UTILS_SOURCES
+add_library(bfs_core STATIC
     ${MAIN_DIR}/utils.c
-)
-
-set(CLASSIC_BFS_SOURCES
     ${MAIN_DIR}/classic_bfs.c
-)
-
-set(GRAPHBLAS_BFS_SOURCES
     ${MAIN_DIR}/graphblas_bfs.c
 )
+target_include_directories(bfs_core PUBLIC ${MAIN_DIR} ${GRAPHBLAS_INCLUDE_DIR})
+target_link_libraries(bfs_core PUBLIC ${GRAPHBLAS_LIBRARY} Threads::Threads m)
 
-set(TEST_UTILS_SOURCES
-    ${TESTS_DIR}/test_utils.c
-)
+add_executable(bfs_benchmark ${MAIN_DIR}/benchmark.cpp)
+target_include_directories(bfs_benchmark PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(bfs_benchmark PRIVATE bfs_core)
 
-# 1. Основной исполняемый файл
-add_executable(bfs_analysis
-    ${MAIN_DIR}/main.cpp
-    ${UTILS_SOURCES}
-    ${CLASSIC_BFS_SOURCES}
-    ${GRAPHBLAS_BFS_SOURCES}
-)
-
-target_include_directories(bfs_analysis PRIVATE
-    ${MAIN_DIR}
-    ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS}
-)
-
-target_link_libraries(bfs_analysis
-    ${GRAPHBLAS_LIBRARY}
-    m
-    pthread
-)
-
-# 2. Бенчмарк
-add_executable(bfs_benchmark
-    ${MAIN_DIR}/benchmark.cpp
-    ${UTILS_SOURCES}
-    ${CLASSIC_BFS_SOURCES}
-    ${GRAPHBLAS_BFS_SOURCES}
-)
-
-target_include_directories(bfs_benchmark PRIVATE
-    ${MAIN_DIR}
-    ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО, чтобы бенчмарк видел Boost
-)
-
-target_link_libraries(bfs_benchmark
-    ${GRAPHBLAS_LIBRARY}
-    m
-    pthread
-)
-
-# Тесты
 enable_testing()
 
-add_executable(test_classic_bfs
-    ${TESTS_DIR}/test_classic_bfs.c
-    ${TEST_UTILS_SOURCES}
-    ${UTILS_SOURCES}
-    ${CLASSIC_BFS_SOURCES}
-)
+add_library(test_common STATIC ${TESTS_DIR}/test_common.c)
+target_include_directories(test_common PUBLIC ${TESTS_DIR})
+target_link_libraries(test_common PUBLIC bfs_core)
+target_compile_options(test_common PUBLIC -UNDEBUG)
 
-target_include_directories(test_classic_bfs PRIVATE
-    ${MAIN_DIR}
-    ${TESTS_DIR}
-    ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
-)
-
-target_link_libraries(test_classic_bfs
-    m
-    pthread
-)
-
-add_executable(test_graphblas_bfs
-    ${TESTS_DIR}/test_graphblas_bfs.c
-    ${TEST_UTILS_SOURCES}
-    ${UTILS_SOURCES}
-    ${GRAPHBLAS_BFS_SOURCES}
-)
-
-target_include_directories(test_graphblas_bfs PRIVATE
-    ${MAIN_DIR}
-    ${TESTS_DIR}
-    ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
-)
-
-target_link_libraries(test_graphblas_bfs
-    ${GRAPHBLAS_LIBRARY}
-    m
-    pthread
-)
-
-add_executable(test_comparison
-    ${TESTS_DIR}/test_comparison.c
-    ${TEST_UTILS_SOURCES}
-    ${UTILS_SOURCES}
-    ${CLASSIC_BFS_SOURCES}
-    ${GRAPHBLAS_BFS_SOURCES}
-)
-
-target_include_directories(test_comparison PRIVATE
-    ${MAIN_DIR}
-    ${TESTS_DIR}
-    ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
-)
-
-target_link_libraries(test_comparison
-    ${GRAPHBLAS_LIBRARY}
-    m
-    pthread
-)
-
-# Добавление тестов в CTest
-add_test(NAME ClassicBFS COMMAND test_classic_bfs)
-add_test(NAME GraphBLASBFS COMMAND test_graphblas_bfs)
-add_test(NAME Comparison COMMAND test_comparison)
-
-message(STATUS "Build configuration ready")
+foreach(test_name test_load test_check test_bfs test_comparison)
+    add_executable(${test_name} ${TESTS_DIR}/${test_name}.c)
+    target_link_libraries(${test_name} PRIVATE test_common)
+    add_test(NAME ${test_name} COMMAND ${test_name})
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
+endforeach()
