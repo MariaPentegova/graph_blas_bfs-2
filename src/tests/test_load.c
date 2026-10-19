@@ -100,8 +100,8 @@ static void test_max_degree_vertex(void) {
     CSRMatrix* undirected = create_test_csr(UNDIRECTED_GRAPH);
     CSRMatrix* directed = create_test_csr(DIRECTED_GRAPH);
 
-    int undirected_vertex = find_max_degree_vertex(undirected);   // степени 2, 3, 1, 2, 2
-    int directed_vertex = find_max_degree_vertex(directed);       // исходящие: 1, 1, 0, 1
+    int undirected_vertex = find_max_degree_vertex(undirected);
+    int directed_vertex = find_max_degree_vertex(directed);
     assert(undirected_vertex == 1);
     assert(directed_vertex == 0);
 
@@ -110,12 +110,37 @@ static void test_max_degree_vertex(void) {
     printf("PASSED: max degree vertex\n");
 }
 
+static void test_load_empty_graph(void) {
+    CSRMatrix* csr = load_test_csr(
+        "%%MatrixMarket matrix coordinate pattern general\n"
+        "0 0 0\n");
+    assert(csr == NULL);
+    printf("PASSED: empty graph is rejected\n");
+}
+
+static void test_load_single_vertex_loop(void) {
+    CSRMatrix* csr = load_test_csr(
+        "%%MatrixMarket matrix coordinate pattern symmetric\n"
+        "1 1 1\n"
+        "1 1\n");
+    assert(csr != NULL);
+    const int expected_row_ptr[2] = {0, 1};
+    const int expected_col_idx[1] = {0};
+    assert(csr->n == 1);
+    assert(arrays_equal(csr->row_ptr, expected_row_ptr, 2));
+    assert(arrays_equal(csr->col_idx, expected_col_idx, 1));
+    delete_csr(csr);
+    printf("PASSED: single-vertex graph with a loop\n");
+}
+
 int main(void) {
     test_load_symmetric();
     test_load_general();
     test_load_sorts_rows_and_removes_duplicates();
     test_load_invalid_files();
     test_max_degree_vertex();
+    test_load_empty_graph();
+    test_load_single_vertex_loop();
 
     printf("All loading tests passed\n");
     return 0;

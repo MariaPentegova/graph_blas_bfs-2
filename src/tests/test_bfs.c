@@ -147,6 +147,62 @@ static void test_invalid_arguments(void) {
     printf("PASSED: invalid arguments are rejected\n");
 }
 
+static void test_isolated_and_loop(void) {
+    static const int src[3] = {0, 0, 1};
+    static const int dst[3] = {0, 1, 2};
+    CSRMatrix* csr = csr_from_edges(4, src, dst, 3, 0);
+    assert(csr != NULL);
+
+    void* A = NULL;
+    assert(graphblas_build_matrix(csr, &A) == 0);
+
+    const int expected_from_0[4] = {0, 1, 2, -1};
+    const int expected_from_3[4] = {-1, -1, -1, 0};
+
+    for (int which = 0; which < 2; which++) {
+        const int start = (which == 0) ? 0 : 3;
+        const int* expected = (which == 0) ? expected_from_0 : expected_from_3;
+        int parent[4];
+        int depth[4];
+        void* result = NULL;
+
+        assert(csr_parent_bfs(csr, start, parent) == 0);
+        assert(bfs_tree_depths(csr, parent, depth) == 0);
+        assert(arrays_equal(depth, expected, 4));
+
+        assert(graphblas_parent_bfs(csr, A, start, &result) == 0);
+        graphblas_result_to_array(result, csr->n, parent);
+        assert(bfs_tree_depths(csr, parent, depth) == 0);
+        assert(arrays_equal(depth, expected, 4));
+    }
+
+    graphblas_free_matrix(A);
+    delete_csr(csr);
+    printf("PASSED: isolated vertex and loop\n");
+}
+
+static void test_graphblas_all_invalid_sources(void) {
+    CSRMatrix* csr = create_test_csr(UNDIRECTED_GRAPH);
+    void* A = NULL;
+    void* result = NULL;
+    int parent[MAX_TEST_VERTICES];
+    const int all_invalid[2] = {-1, 5};
+    assert(graphblas_build_matrix(csr, &A) == 0);
+
+    int status = graphblas_multisource_parent_bfs(csr, A, all_invalid, 2, &result);
+    assert(status == 0);
+    assert(result != NULL);
+    assert(graphblas_parent_to_array(result, csr->n, parent) == 0);
+    for (int i = 0; i < csr->n; i++) {
+        assert(parent[i] == -1);
+    }
+
+    graphblas_free_vector(result);
+    graphblas_free_matrix(A);
+    delete_csr(csr);
+    printf("PASSED: all-invalid sources give an empty result vector\n");
+}
+
 int main(void) {
     if (graphblas_init() != 0) {
         return 1;
@@ -156,6 +212,8 @@ int main(void) {
     test_multisource();
     test_directed_exact_parents();
     test_invalid_arguments();
+    test_isolated_and_loop();
+    test_graphblas_all_invalid_sources();
 
     graphblas_finalize();
     printf("All BFS tests passed\n");
