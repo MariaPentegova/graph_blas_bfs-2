@@ -1,9 +1,15 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+struct Node {
+    int vertex;
+    struct Node* next;
+};
+
+struct Graph {
+    int num_of_vertices;
+    struct Node** adjLists;
+};
 
 struct CSRMatrix {
     int n;
@@ -11,17 +17,16 @@ struct CSRMatrix {
     int* col_idx;
 };
 
+typedef struct Node Node;
+typedef struct Graph Graph;
 typedef struct CSRMatrix CSRMatrix;
 
-CSRMatrix* csr_from_edges(int n, const int* src, const int* dst, int num_edges, int symmetric);
-CSRMatrix* load_csr(const char* filename);
+Graph* create_graph(int n);
+void add_edge(struct Graph* g, int src, int dest);
+Graph* load_matrix(const char* filename);
+CSRMatrix* graph_to_csr(Graph* g);
+int find_max_degree_vertex(Graph* g);
+void delete_graph(Graph* g);
 void delete_csr(CSRMatrix* csr);
-
-int find_max_degree_vertex(const CSRMatrix* csr);
-int bfs_tree_depths(const CSRMatrix* csr, const int* parent, int* depth);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

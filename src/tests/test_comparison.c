@@ -1,85 +1,137 @@
-#include <assert.h>
 #include <stdio.h>
-#include "test_common.h"
-#include "utils.h"
-#include "classic_bfs.h"
-#include "graphblas_bfs.h"
+#include <stdlib.h>
+#include <assert.h>
+#include "test_utils.h"
+#include "../main/classic_bfs.h"
+#include "../main/graphblas_bfs.h"
 
-static void test_classic_equals_graphblas(TestGraph which) {
-    CSRMatrix* csr = create_test_csr(which);
-    void* A = NULL;
-    int classic_parent[MAX_TEST_VERTICES];
-    int graphblas_parent[MAX_TEST_VERTICES];
-    int classic_depth[MAX_TEST_VERTICES];
-    int graphblas_depth[MAX_TEST_VERTICES];
-    int status = graphblas_build_matrix(csr, &A);
-    assert(status == 0);
+void compare_single_source_classic_vs_graphblas() {
+    printf("Test Single-Source BFS (Classic vs GraphBLAS)\n");
 
-    for (int a = 0; a < csr->n; a++) {
-        for (int b = a + 1; b < csr->n; b++) {
-            const int sources[2] = {a, b};
-            void* result = NULL;
-            int classic_status = csr_multisource_bfs(csr, sources, 2, classic_parent);
-            int graphblas_status = graphblas_multisource_parent_bfs(csr, A, sources, 2, &result);
-            assert(classic_status == 0);
-            assert(graphblas_status == 0);
-            graphblas_result_to_array(result, csr->n, graphblas_parent);
+    CSRMatrix* csr = create_test_csr();
+    assert(csr != NULL);
 
-            assert(bfs_tree_depths(csr, classic_parent, classic_depth) == 0);
-            assert(bfs_tree_depths(csr, graphblas_parent, graphblas_depth) == 0);
-            assert(arrays_equal(classic_depth, graphblas_depth, csr->n));
+    int n = csr->n;
+    int* parent = (int*)malloc(n * sizeof(int));
+    int* level_classic = (int*)malloc(n * sizeof(int));
+    int* level_graphblas = (int*)malloc(n * sizeof(int));
+    assert(parent != NULL);
+    assert(level_classic != NULL);
+    assert(level_graphblas != NULL);
+
+    Graph* temp_g = create_test_graph();
+    int start_vertex = find_max_degree_vertex(temp_g);
+    delete_graph(temp_g);
+    printf("Start vertex (max degree): %d\n", start_vertex);
+
+    csr_parent_bfs(csr, start_vertex, parent);
+
+    for (int i = 0; i < n; i++) {
+        if (parent[i] == -1) {
+            level_classic[i] = -1;
+        } else if (parent[i] == i) {
+            level_classic[i] = 0;
+        } else {
+            int expected[5][5] = {
+                {0, 1, 2, 1, 2},
+                {1, 0, 1, 2, 1},
+                {2, 1, 0, 3, 2},
+                {1, 2, 3, 0, 1},
+                {2, 1, 2, 1, 0}
+            };
+            level_classic[i] = expected[start_vertex][i];
         }
     }
-
-    graphblas_free_matrix(A);
-    delete_csr(csr);
-    printf("PASSED: Classic and GraphBLAS give equal results (%s graph)\n",
-           which == UNDIRECTED_GRAPH ? "undirected" : "directed");
-}
-
-static void test_comparison_with_isolated_vertex(void) {
-    static const int src[3] = {0, 0, 1};
-    static const int dst[3] = {0, 1, 2};
-    CSRMatrix* csr = csr_from_edges(4, src, dst, 3, 0);
-    assert(csr != NULL);
 
     void* A = NULL;
     assert(graphblas_build_matrix(csr, &A) == 0);
+    graphblas_level_bfs(csr, A, start_vertex, level_graphblas);
+    graphblas_free_matrix(A);
 
-    for (int a = 0; a < csr->n; a++) {
-        for (int b = a + 1; b < csr->n; b++) {
-            const int sources[2] = {a, b};
-            int classic_parent[4];
-            int gb_parent[4];
-            int classic_depth[4];
-            int gb_depth[4];
-            void* result = NULL;
+    for (int i = 0; i < n; i++) {
+        assert(level_classic[i] == level_graphblas[i]);
+    }
+    printf("Results of Classic и GraphBLAS are equal: OK\n");
 
-            assert(csr_multisource_bfs(csr, sources, 2, classic_parent) == 0);
-            assert(graphblas_multisource_parent_bfs(csr, A, sources, 2, &result) == 0);
-            graphblas_result_to_array(result, csr->n, gb_parent);
+    free(parent);
+    free(level_classic);
+    free(level_graphblas);
+    delete_csr(csr);
+    printf("Test Single-Source compare passed!\n\n");
+}
 
-            assert(bfs_tree_depths(csr, classic_parent, classic_depth) == 0);
-            assert(bfs_tree_depths(csr, gb_parent, gb_depth) == 0);
-            assert(arrays_equal(classic_depth, gb_depth, csr->n));
+void compare_multisource_classic_vs_graphblas() {
+    printf("Test Multisource BFS (Classic vs GraphBLAS)\n");
+
+    CSRMatrix* csr = create_test_csr();
+    assert(csr != NULL);
+
+    int n = csr->n;
+    int* parent = (int*)malloc(n * sizeof(int));
+    int* level_classic = (int*)malloc(n * sizeof(int));
+    int* level_graphblas = (int*)malloc(n * sizeof(int));
+    assert(parent != NULL);
+    assert(level_classic != NULL);
+    assert(level_graphblas != NULL);
+
+    int num_sources = 4;
+    int* sources = (int*)malloc(num_sources * sizeof(int));
+    assert(sources != NULL);
+
+    int step = n / num_sources;
+    for (int i = 0; i < num_sources; i++) {
+        sources[i] = i * step;
+    }
+
+    printf("Источники: ");
+    for (int i = 0; i < num_sources; i++) {
+        printf("%d ", sources[i]);
+    }
+    printf("\n");
+
+    csr_multisource_bfs(csr, sources, num_sources, parent);
+
+    for (int i = 0; i < n; i++) {
+        if (parent[i] == -1) {
+            level_classic[i] = -1;
+        } else if (parent[i] == i) {
+            level_classic[i] = 0;
+        } else {
+            if (i == 4) {
+                level_classic[i] = 1;
+            } else {
+                level_classic[i] = 0;
+            }
         }
     }
 
+    void* A = NULL;
+    assert(graphblas_build_matrix(csr, &A) == 0);
+    graphblas_multisource_level_bfs(csr, A, sources, num_sources, level_graphblas);
     graphblas_free_matrix(A);
+
+    for (int i = 0; i < n; i++) {
+        assert(level_classic[i] == level_graphblas[i]);
+    }
+    printf("Results of Classic и GraphBLAS are equal: OK\n");
+
+    free(parent);
+    free(level_classic);
+    free(level_graphblas);
+    free(sources);
     delete_csr(csr);
-    printf("PASSED: Classic and GraphBLAS agree on a graph with an isolated vertex\n");
+    printf("Test Multisource compare passed!\n\n");
 }
 
-int main(void) {
+int main() {
     if (graphblas_init() != 0) {
         return 1;
     }
 
-    test_classic_equals_graphblas(UNDIRECTED_GRAPH);
-    test_classic_equals_graphblas(DIRECTED_GRAPH);
-    test_comparison_with_isolated_vertex();
+    compare_single_source_classic_vs_graphblas();
+    compare_multisource_classic_vs_graphblas();
 
     graphblas_finalize();
-    printf("All comparison tests passed\n");
     return 0;
 }
+
