@@ -6,7 +6,7 @@
 #include "graphblas_bfs.h"
 
 static bool g_initialized = false;
-static GrB_Descriptor g_desc_visited_comp_replace = NULL; 
+static GrB_Descriptor g_desc_visited_comp_replace = NULL;
 static GrB_Monoid g_lor_monoid = NULL;
 static GrB_Semiring g_lor_land_semiring = NULL;
 
@@ -86,8 +86,8 @@ int graphblas_build_matrix(CSRMatrix* csr, void** A_out) {
         mat, GrB_BOOL, n, n,
         &row_ptr, &col_idx, &Ax,
         Ap_size, Aj_size, Ax_size,
-        true,   
-        false,  
+        true,
+        false,
         NULL
     );
 
@@ -113,13 +113,13 @@ int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* l
     if (csr == NULL || level == NULL || A_handle == NULL ||
         start_vertex < 0 || start_vertex >= csr->n) {
         return -1;
-    }
-    if (!g_initialized) {
-        fprintf(stderr, "Error: graphblas_init() must be called before graphblas_level_bfs()\n");
-        return -1;
-    }
+        }
+        if (!g_initialized) {
+            fprintf(stderr, "Error: graphblas_init() must be called before graphblas_level_bfs()\n");
+            return -1;
+        }
 
-    int n = csr->n;
+        int n = csr->n;
     GrB_Matrix A = (GrB_Matrix)A_handle;
 
     GrB_Vector level_vec = NULL;
@@ -183,9 +183,21 @@ int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* l
         current_level++;
     }
 
-    for (int i = 0; i < n; i++) {
-        GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
+    GrB_Index* I = (GrB_Index*)malloc(n * sizeof(GrB_Index));
+    int32_t* X = (int32_t*)malloc(n * sizeof(int32_t));
+    if (I != NULL && X != NULL) {
+        GrB_Index nvals_out = (GrB_Index)n;
+        GrB_Vector_extractTuples_INT32(I, X, &nvals_out, level_vec);
+        for (GrB_Index k = 0; k < nvals_out; k++) {
+            level[I[k]] = (int)X[k];
+        }
+    } else {
+        for (int i = 0; i < n; i++) {
+            GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
+        }
     }
+    free(I);
+    free(X);
 
     GrB_Vector_free(&level_vec);
     GrB_Vector_free(&frontier);
@@ -196,17 +208,17 @@ int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* l
 }
 
 int graphblas_multisource_level_bfs(CSRMatrix* csr, void* A_handle,
-                                     int* sources, int num_sources, int* level) {
+                                    int* sources, int num_sources, int* level) {
     if (csr == NULL || level == NULL || A_handle == NULL ||
         sources == NULL || num_sources <= 0) {
         return -1;
-    }
-    if (!g_initialized) {
-        fprintf(stderr, "Error: graphblas_init() must be called before graphblas_multisource_level_bfs()\n");
-        return -1;
-    }
+        }
+        if (!g_initialized) {
+            fprintf(stderr, "Error: graphblas_init() must be called before graphblas_multisource_level_bfs()\n");
+            return -1;
+        }
 
-    int n = csr->n;
+        int n = csr->n;
     GrB_Matrix A = (GrB_Matrix)A_handle;
 
     GrB_Vector level_vec = NULL;
@@ -275,9 +287,21 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, void* A_handle,
         current_level++;
     }
 
-    for (int i = 0; i < n; i++) {
-        GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
+    GrB_Index* I = (GrB_Index*)malloc(n * sizeof(GrB_Index));
+    int32_t* X = (int32_t*)malloc(n * sizeof(int32_t));
+    if (I != NULL && X != NULL) {
+        GrB_Index nvals_out = (GrB_Index)n;
+        GrB_Vector_extractTuples_INT32(I, X, &nvals_out, level_vec);
+        for (GrB_Index k = 0; k < nvals_out; k++) {
+            level[I[k]] = (int)X[k];
+        }
+    } else {
+        for (int i = 0; i < n; i++) {
+            GrB_Vector_extractElement_INT32(&level[i], level_vec, i);
+        }
     }
+    free(I);
+    free(X);
 
     GrB_Vector_free(&level_vec);
     GrB_Vector_free(&frontier);

@@ -44,6 +44,43 @@ double max_value(double* arr, int n) {
     return max;
 }
 
+static void print_level_stats(const int* level, int n, const char* graph_name) {
+    int max_level = 0;
+    int reachable = 0;
+    int unreachable = 0;
+    for (int i = 0; i < n; i++) {
+        if (level[i] == -1) {
+            unreachable++;
+        } else {
+            reachable++;
+            if (level[i] > max_level) max_level = level[i];
+        }
+    }
+
+    int* width = (int*)calloc(max_level + 1, sizeof(int));
+    for (int i = 0; i < n; i++) {
+        if (level[i] >= 0) width[level[i]]++;
+    }
+
+    double avg_width = 0.0;
+    int nonempty = 0;
+    for (int l = 0; l <= max_level; l++) {
+        if (width[l] > 0) {
+            avg_width += width[l];
+            nonempty++;
+        }
+    }
+    if (nonempty > 0) avg_width /= nonempty;
+
+    printf("\n Level statistics for %s (single-source from max-degree):\n", graph_name);
+    printf("   reachable   = %d\n", reachable);
+    printf("   unreachable = %d\n", unreachable);
+    printf("   max_level   = %d  (~diameter from start)\n", max_level);
+    printf("   avg_width   = %.1f (vertices per non-empty level)\n", avg_width);
+
+    free(width);
+}
+
 void run_benchmark(const char* graph_file) {
     printf("Benchmark: %s\n", graph_file);
 
@@ -102,11 +139,34 @@ void run_benchmark(const char* graph_file) {
            build_elapsed);
 
     graphblas_level_bfs(csr, gb_matrix, start_vertex, level);
+    print_level_stats(level, csr->n, graph_file);
     graphblas_multisource_level_bfs(csr, gb_matrix, sources, num_sources, level);
+
+    double t_bgl_build = get_time_in_seconds();
+
+    int total_edges = csr->row_ptr[csr->n];
+    std::vector<std::pair<int, int>> edge_list;
+    edge_list.reserve(total_edges);
+    for (int u = 0; u < csr->n; ++u) {
+        int row_start = csr->row_ptr[u];
+        int row_end = csr->row_ptr[u + 1];
+        for (int i = row_start; i < row_end; ++i) {
+            edge_list.push_back(std::make_pair(u, csr->col_idx[i]));
+        }
+    }
+
+    typedef boost::compressed_sparse_row_graph<
+    boost::directedS, boost::no_property, boost::no_property,
+    boost::no_property, int, int> BGLGraph;
+    BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
+
+    double bgl_build_elapsed = get_time_in_seconds() - t_bgl_build;
+    printf("Boost BGL: graph construction (performed once, not included in the measurements below): %.6f сек\n",
+           bgl_build_elapsed);
 
     int num_runs = 10;
     double t_classic_parent[10];
-    double t_bgl_parent[10]; 
+    double t_bgl_parent[10];
     double t_classic_multisource[10];
     double t_graphblas_level[10];
     double t_graphblas_multisource[10];
@@ -124,27 +184,11 @@ void run_benchmark(const char* graph_file) {
         start = get_time_in_seconds();
         for (int i = 0; i < csr->n; i++) parent[i] = -1;
         parent[start_vertex] = start_vertex;
-
-        int total_edges = csr->row_ptr[csr->n];
-        std::vector<std::pair<int, int>> edge_list;
-        edge_list.reserve(total_edges);
-
-        for (int u = 0; u < csr->n; ++u) {
-            int row_start = csr->row_ptr[u];
-            int row_end = csr->row_ptr[u + 1];
-            for (int i = row_start; i < row_end; ++i) {
-                int v = csr->col_idx[i];
-                edge_list.push_back(std::make_pair(u, v));
-            }
-        }
-
-        typedef boost::compressed_sparse_row_graph<boost::directedS, boost::no_property, boost::no_property, boost::no_property, int, int> BGLGraph;
-        BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
-
-        boost::breadth_first_search(bgl_g, start_vertex,
-                                    boost::visitor(boost::make_bfs_visitor(
-                                        boost::record_predecessors(parent, boost::on_tree_edge())
-                                    ))
+        boost::breadth_first_search(
+            bgl_g, start_vertex,
+            boost::visitor(boost::make_bfs_visitor(
+                boost::record_predecessors(parent, boost::on_tree_edge())
+            ))
         );
         end = get_time_in_seconds();
         t_bgl_parent[run] = (end - start) * 1e6;
