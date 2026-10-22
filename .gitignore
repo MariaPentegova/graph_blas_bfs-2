@@ -34,3 +34,5 @@ CTestTestfile.cmake
 
 graphs/
 *.mtx
+
+cd/

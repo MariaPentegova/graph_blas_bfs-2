@@ -181,7 +181,7 @@ void run_benchmark(const char* graph_file) {
     double t_graphblas_level[10];
     double t_graphblas_multisource[10];
 
-    printf("\nRunning %d iterations (separate warm-up + loop per algorithm)...\n", num_runs);
+    printf("\nRunning %d iterations...\n", num_runs);
 
     double start, end;
 
