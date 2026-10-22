@@ -181,6 +181,98 @@ void test_graphblas_multisource_level_bfs_correctness() {
     printf("Test GraphBLAS Multisource Level BFS passed!\n");
 }
 
+void test_graphblas_parent_bfs_correctness() {
+    printf("\nTest GraphBLAS Parent BFS Correctness \n");
+
+    CSRMatrix* csr = create_test_csr();
+    assert(csr != NULL);
+    int n = csr->n;
+
+    int* parent = (int*)malloc(n * sizeof(int));
+    assert(parent != NULL);
+
+    Graph* temp_g = create_test_graph();
+    int start_vertex = find_max_degree_vertex(temp_g);
+    delete_graph(temp_g);
+
+    void* A = NULL;
+    int rc = graphblas_build_matrix(csr, &A);
+    assert(rc == 0);
+    (void)rc;
+
+    rc = graphblas_parent_bfs(csr, A, start_vertex, parent);
+    assert(rc == 0);
+    (void)rc;
+
+    assert(parent[start_vertex] == start_vertex);
+    for (int v = 0; v < n; v++) {
+        if (v == start_vertex) continue;
+        assert(parent[v] != -1);
+        assert(parent[v] != v);
+        int found = 0;
+        for (int j = csr->row_ptr[v]; j < csr->row_ptr[v + 1]; j++) {
+            if (csr->col_idx[j] == parent[v]) {
+                found = 1;
+                break;
+            }
+        }
+        assert(found == 1);
+    }
+
+    graphblas_free_matrix(A);
+    free(parent);
+    delete_csr(csr);
+    printf("Test GraphBLAS Parent BFS passed!\n");
+}
+
+void test_graphblas_multisource_parent_bfs_correctness() {
+    printf("\nTest GraphBLAS Multisource Parent BFS Correctness \n");
+
+    CSRMatrix* csr = create_test_csr();
+    assert(csr != NULL);
+    int n = csr->n;
+
+    int* parent = (int*)malloc(n * sizeof(int));
+    assert(parent != NULL);
+
+    int num_sources = 4;
+    int* sources = (int*)malloc(num_sources * sizeof(int));
+    assert(sources != NULL);
+    int step = n / num_sources;
+    for (int i = 0; i < num_sources; i++) sources[i] = i * step;
+
+    void* A = NULL;
+    int rc = graphblas_build_matrix(csr, &A);
+    assert(rc == 0);
+    (void)rc;
+
+    rc = graphblas_multisource_parent_bfs(csr, A, sources, num_sources, parent);
+    assert(rc == 0);
+    (void)rc;
+
+    for (int i = 0; i < num_sources; i++) {
+        assert(parent[sources[i]] == sources[i]);
+    }
+    for (int v = 0; v < n; v++) {
+        if (parent[v] == -1) continue;
+        if (parent[v] == v) continue;
+        int found = 0;
+        for (int j = csr->row_ptr[v]; j < csr->row_ptr[v + 1]; j++) {
+            if (csr->col_idx[j] == parent[v]) {
+                found = 1;
+                break;
+            }
+        }
+        assert(found == 1);
+    }
+
+    graphblas_free_matrix(A);
+    free(parent);
+    free(sources);
+    delete_csr(csr);
+    printf("Test GraphBLAS Multisource Parent BFS passed!\n");
+}
+
 int main() {
     if (graphblas_init() != 0) {
         return 1;
@@ -188,6 +280,8 @@ int main() {
 
     test_graphblas_level_bfs_correctness();
     test_graphblas_multisource_level_bfs_correctness();
+    test_graphblas_parent_bfs_correctness();
+    test_graphblas_multisource_parent_bfs_correctness();
 
     graphblas_finalize();
     printf("All Tests GraphBLAS BFS passed!\n");

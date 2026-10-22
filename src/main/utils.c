@@ -215,6 +215,38 @@ int find_max_degree_vertex(Graph* graph) {
     return max_vertex;
 }
 
+void find_top_degree_vertices(Graph* g, int k, int* out) {
+    if (g == NULL || out == NULL || k <= 0){
+        return;
+    }
+    int n = g->num_of_vertices;
+    if (k > n){
+        k = n;
+    }
+    int* degrees = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        int degree = 0;
+        for (Node* cur = g->adjLists[i]; cur != NULL; cur = cur->next){
+            degree++;
+        }
+        degrees[i] = degree;
+    }
+
+    for (int position = 0; position < k; position++) {
+        int chosen_vertex = -1;
+        int max_degree = -1;
+        for (int i = 0; i < n; i++) {
+            if (degrees[i] > max_degree) {
+                max_degree = degrees[i];
+                chosen_vertex = i;
+            }
+        }
+        out[position] = chosen_vertex;
+        degrees[chosen_vertex] = -1;
+    }
+    free(degrees);
+}
+
 void delete_graph(Graph* g) {
     if (g == NULL) return;
     for (int i = 0; i < g->num_of_vertices; i++) {

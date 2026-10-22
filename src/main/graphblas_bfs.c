@@ -87,7 +87,7 @@ int graphblas_build_matrix(CSRMatrix* csr, void** A_out) {
         &row_ptr, &col_idx, &Ax,
         Ap_size, Aj_size, Ax_size,
         true,
-        false,
+        true,
         NULL
     );
 
@@ -107,6 +107,60 @@ void graphblas_free_matrix(void* A_handle) {
     }
     GrB_Matrix A = (GrB_Matrix)A_handle;
     GrB_Matrix_free(&A);
+}
+
+static void assign_parents_from_frontier(CSRMatrix* csr, GrB_Vector frontier,
+                                         GrB_Vector new_frontier, int* parent) {
+    int n = csr->n;
+
+    GrB_Index* frontier_indices = (GrB_Index*)malloc((size_t)n * sizeof(GrB_Index));
+    bool* frontier_values = (bool*)malloc((size_t)n * sizeof(bool));
+    bool* in_frontier = (bool*)calloc((size_t)n, sizeof(bool));
+    if (frontier_indices == NULL || frontier_values == NULL || in_frontier == NULL) {
+        free(frontier_indices);
+        free(frontier_values);
+        free(in_frontier);
+        return;
+    }
+
+    GrB_Index frontier_nvals = (GrB_Index)n;
+    GrB_Vector_extractTuples_BOOL(frontier_indices, frontier_values, &frontier_nvals, frontier);
+    for (GrB_Index k = 0; k < frontier_nvals; k++) {
+        in_frontier[frontier_indices[k]] = true;
+    }
+
+    GrB_Index* new_indices = (GrB_Index*)malloc((size_t)n * sizeof(GrB_Index));
+    bool* new_values = (bool*)malloc((size_t)n * sizeof(bool));
+    if (new_indices == NULL || new_values == NULL) {
+        free(frontier_indices);
+        free(frontier_values);
+        free(in_frontier);
+        free(new_indices);
+        free(new_values);
+        return;
+    }
+
+    GrB_Index new_nvals = (GrB_Index)n;
+    GrB_Vector_extractTuples_BOOL(new_indices, new_values, &new_nvals, new_frontier);
+
+    for (GrB_Index k = 0; k < new_nvals; k++) {
+        int vertex = (int)new_indices[k];
+        int row_begin = csr->row_ptr[vertex];
+        int row_end = csr->row_ptr[vertex + 1];
+        for (int edge_position = row_begin; edge_position < row_end; edge_position++) {
+            int neighbor = csr->col_idx[edge_position];
+            if (in_frontier[neighbor]) {
+                parent[vertex] = neighbor;
+                break;
+            }
+        }
+    }
+
+    free(frontier_indices);
+    free(frontier_values);
+    free(in_frontier);
+    free(new_indices);
+    free(new_values);
 }
 
 int graphblas_level_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* level) {
@@ -304,6 +358,147 @@ int graphblas_multisource_level_bfs(CSRMatrix* csr, void* A_handle,
     free(X);
 
     GrB_Vector_free(&level_vec);
+    GrB_Vector_free(&frontier);
+    GrB_Vector_free(&visited);
+    GrB_Vector_free(&new_frontier);
+
+    return 0;
+}
+
+int graphblas_parent_bfs(CSRMatrix* csr, void* A_handle, int start_vertex, int* parent) {
+    if (csr == NULL || parent == NULL || A_handle == NULL ||
+        start_vertex < 0 || start_vertex >= csr->n) {
+        return -1;
+        }
+        if (!g_initialized) {
+            fprintf(stderr, "Error: graphblas_init() must be called before graphblas_parent_bfs()\n");
+            return -1;
+        }
+
+        int n = csr->n;
+    GrB_Matrix A = (GrB_Matrix)A_handle;
+
+    for (int i = 0; i < n; i++) {
+        parent[i] = -1;
+    }
+    parent[start_vertex] = start_vertex;
+
+    GrB_Vector frontier = NULL;
+    GrB_Vector visited = NULL;
+    GrB_Vector new_frontier = NULL;
+
+    GrB_Vector_new(&frontier, GrB_BOOL, n);
+    GrB_Vector_new(&visited, GrB_BOOL, n);
+    GrB_Vector_new(&new_frontier, GrB_BOOL, n);
+
+    GrB_Vector_setElement_BOOL(frontier, true, start_vertex);
+    GrB_Vector_setElement_BOOL(visited, true, start_vertex);
+
+    GrB_Index nvals = 1;
+    while (nvals > 0) {
+        GrB_vxm(
+            new_frontier,
+            visited,
+            NULL,
+            g_lor_land_semiring,
+            frontier,
+            A,
+            g_desc_visited_comp_replace
+        );
+
+        GrB_eWiseAdd(
+            visited,
+            NULL,
+            NULL,
+            GrB_LOR,
+            visited,
+            new_frontier,
+            NULL
+        );
+
+        assign_parents_from_frontier(csr, frontier, new_frontier, parent);
+
+        GrB_Vector tmp = frontier;
+        frontier = new_frontier;
+        new_frontier = tmp;
+
+        GrB_Vector_nvals(&nvals, frontier);
+    }
+
+    GrB_Vector_free(&frontier);
+    GrB_Vector_free(&visited);
+    GrB_Vector_free(&new_frontier);
+
+    return 0;
+}
+
+int graphblas_multisource_parent_bfs(CSRMatrix* csr, void* A_handle,
+                                     int* sources, int num_sources, int* parent) {
+    if (csr == NULL || parent == NULL || A_handle == NULL ||
+        sources == NULL || num_sources <= 0) {
+        return -1;
+        }
+        if (!g_initialized) {
+            fprintf(stderr, "Error: graphblas_init() must be called before graphblas_multisource_parent_bfs()\n");
+            return -1;
+        }
+
+        int n = csr->n;
+    GrB_Matrix A = (GrB_Matrix)A_handle;
+
+    for (int i = 0; i < n; i++) {
+        parent[i] = -1;
+    }
+
+    GrB_Vector frontier = NULL;
+    GrB_Vector visited = NULL;
+    GrB_Vector new_frontier = NULL;
+
+    GrB_Vector_new(&frontier, GrB_BOOL, n);
+    GrB_Vector_new(&visited, GrB_BOOL, n);
+    GrB_Vector_new(&new_frontier, GrB_BOOL, n);
+
+    GrB_Index nvals = 0;
+    for (int i = 0; i < num_sources; i++) {
+        int s = sources[i];
+        if (s >= 0 && s < n) {
+            parent[s] = s;
+            GrB_Vector_setElement_BOOL(frontier, true, s);
+            GrB_Vector_setElement_BOOL(visited, true, s);
+            nvals++;
+        }
+    }
+
+    while (nvals > 0) {
+        GrB_vxm(
+            new_frontier,
+            visited,
+            NULL,
+            g_lor_land_semiring,
+            frontier,
+            A,
+            g_desc_visited_comp_replace
+        );
+
+        GrB_eWiseAdd(
+            visited,
+            NULL,
+            NULL,
+            GrB_LOR,
+            visited,
+            new_frontier,
+            NULL
+        );
+
+        assign_parents_from_frontier(csr, frontier, new_frontier, parent);
+
+        GrB_Vector tmp = frontier;
+        frontier = new_frontier;
+        new_frontier = tmp;
+
+        GrB_Vector_nvals(&nvals, frontier);
+    }
+
     GrB_Vector_free(&frontier);
     GrB_Vector_free(&visited);
     GrB_Vector_free(&new_frontier);

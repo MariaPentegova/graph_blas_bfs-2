@@ -31,3 +31,6 @@ CTestTestfile.cmake
 *.swp
 *.swo
 *~
+
+graphs/
+*.mtx

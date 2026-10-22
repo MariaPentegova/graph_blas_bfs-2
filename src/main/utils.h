@@ -26,6 +26,7 @@ void add_edge(struct Graph* g, int src, int dest);
 Graph* load_matrix(const char* filename);
 CSRMatrix* graph_to_csr(Graph* g);
 int find_max_degree_vertex(Graph* g);
+void find_top_degree_vertices(Graph* g, int k, int* out);
 void delete_graph(Graph* g);
 void delete_csr(CSRMatrix* csr);
 

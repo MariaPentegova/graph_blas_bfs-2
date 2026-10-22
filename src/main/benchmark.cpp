@@ -31,7 +31,9 @@ double average(double* arr, int n) {
 double min_value(double* arr, int n) {
     double min = arr[0];
     for (int i = 1; i < n; i++) {
-        if (arr[i] < min) min = arr[i];
+        if (arr[i] < min){
+            min = arr[i];
+        }
     }
     return min;
 }
@@ -39,9 +41,22 @@ double min_value(double* arr, int n) {
 double max_value(double* arr, int n) {
     double max = arr[0];
     for (int i = 1; i < n; i++) {
-        if (arr[i] > max) max = arr[i];
+        if (arr[i] > max){
+            max = arr[i];
+        }
     }
     return max;
+}
+
+static int tree_depth(int* parent, int n) {
+    int max_depth = 0;
+    for (int i = 0; i < n; i++) {
+        if (parent[i] == -1) continue;
+        int depth = 0, v = i;
+        while (parent[v] != v) { v = parent[v]; depth++; }
+        if (depth > max_depth) max_depth = depth;
+    }
+    return max_depth;
 }
 
 static void print_level_stats(const int* level, int n, const char* graph_name) {
@@ -53,30 +68,31 @@ static void print_level_stats(const int* level, int n, const char* graph_name) {
             unreachable++;
         } else {
             reachable++;
-            if (level[i] > max_level) max_level = level[i];
+            if (level[i] > max_level){
+                max_level = level[i];
+            }
         }
     }
 
     int* width = (int*)calloc(max_level + 1, sizeof(int));
     for (int i = 0; i < n; i++) {
-        if (level[i] >= 0) width[level[i]]++;
-    }
-
-    double avg_width = 0.0;
-    int nonempty = 0;
-    for (int l = 0; l <= max_level; l++) {
-        if (width[l] > 0) {
-            avg_width += width[l];
-            nonempty++;
+        if (level[i] >= 0){
+            width[level[i]]++;
         }
     }
-    if (nonempty > 0) avg_width /= nonempty;
+
+    int max_width = 0;
+    for (int l = 0; l <= max_level; l++) {
+        if (width[l] > max_width){
+            max_width = width[l];
+        }
+    }
 
     printf("\n Level statistics for %s (single-source from max-degree):\n", graph_name);
-    printf("   reachable   = %d\n", reachable);
-    printf("   unreachable = %d\n", unreachable);
+    printf("   reachable   = %d (%.1f%%)\n", reachable, 100.0 * reachable / n);
+    printf("   unreachable = %d (%.1f%%)\n", unreachable, 100.0 * unreachable / n);
     printf("   max_level   = %d  (~diameter from start)\n", max_level);
-    printf("   avg_width   = %.1f (vertices per non-empty level)\n", avg_width);
+    printf("   max_width   = %d\n", max_width);
 
     free(width);
 }
@@ -101,10 +117,7 @@ void run_benchmark(const char* graph_file) {
 
     int num_sources = 4;
     int* sources = (int*)malloc(num_sources * sizeof(int));
-    int step = csr->n / num_sources;
-    for (int i = 0; i < num_sources; i++) {
-        sources[i] = i * step;
-    }
+    find_top_degree_vertices(g, num_sources, sources);
 
     printf("Sources: ");
     for (int i = 0; i < num_sources; i++) {
@@ -135,12 +148,10 @@ void run_benchmark(const char* graph_file) {
         return;
     }
     double build_elapsed = get_time_in_seconds() - t_build;
-    printf("GraphBLAS: matrix construction (performed once, not included in the measurements below): %.6f сек\n",
-           build_elapsed);
+    printf("GraphBLAS: matrix construction (performed once, not included in the measurements below): %.6f сек\n", build_elapsed);
 
     graphblas_level_bfs(csr, gb_matrix, start_vertex, level);
     print_level_stats(level, csr->n, graph_file);
-    graphblas_multisource_level_bfs(csr, gb_matrix, sources, num_sources, level);
 
     double t_bgl_build = get_time_in_seconds();
 
@@ -161,8 +172,7 @@ void run_benchmark(const char* graph_file) {
     BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
 
     double bgl_build_elapsed = get_time_in_seconds() - t_bgl_build;
-    printf("Boost BGL: graph construction (performed once, not included in the measurements below): %.6f сек\n",
-           bgl_build_elapsed);
+    printf("Boost BGL: graph construction (performed once, not included in the measurements below): %.6f сек\n", bgl_build_elapsed);
 
     int num_runs = 10;
     double t_classic_parent[10];
@@ -171,19 +181,40 @@ void run_benchmark(const char* graph_file) {
     double t_graphblas_level[10];
     double t_graphblas_multisource[10];
 
-    printf("\nRunning %d iterations...\n", num_runs);
+    printf("\nRunning %d iterations (separate warm-up + loop per algorithm)...\n", num_runs);
 
+    double start, end;
+
+    csr_parent_bfs(csr, start_vertex, parent);
     for (int run = 0; run < num_runs; run++) {
-        double start, end;
-
         start = get_time_in_seconds();
         csr_parent_bfs(csr, start_vertex, parent);
         end = get_time_in_seconds();
         t_classic_parent[run] = (end - start) * 1e6;
+    }
 
+
+    csr_multisource_bfs(csr, sources, num_sources, parent);
+    for (int run = 0; run < num_runs; run++) {
         start = get_time_in_seconds();
+        csr_multisource_bfs(csr, sources, num_sources, parent);
+        end = get_time_in_seconds();
+        t_classic_multisource[run] = (end - start) * 1e6;
+    }
+
+
+    for (int i = 0; i < csr->n; i++) parent[i] = -1;
+    parent[start_vertex] = start_vertex;
+    boost::breadth_first_search(
+        bgl_g, start_vertex,
+        boost::visitor(boost::make_bfs_visitor(
+            boost::record_predecessors(parent, boost::on_tree_edge())
+        ))
+    );
+    for (int run = 0; run < num_runs; run++) {
         for (int i = 0; i < csr->n; i++) parent[i] = -1;
         parent[start_vertex] = start_vertex;
+        start = get_time_in_seconds();
         boost::breadth_first_search(
             bgl_g, start_vertex,
             boost::visitor(boost::make_bfs_visitor(
@@ -192,19 +223,20 @@ void run_benchmark(const char* graph_file) {
         );
         end = get_time_in_seconds();
         t_bgl_parent[run] = (end - start) * 1e6;
+    }
 
+    graphblas_parent_bfs(csr, gb_matrix, start_vertex, parent);
+    for (int run = 0; run < num_runs; run++) {
         start = get_time_in_seconds();
-        csr_multisource_bfs(csr, sources, num_sources, parent);
-        end = get_time_in_seconds();
-        t_classic_multisource[run] = (end - start) * 1e6;
-
-        start = get_time_in_seconds();
-        graphblas_level_bfs(csr, gb_matrix, start_vertex, level);
+        graphblas_parent_bfs(csr, gb_matrix, start_vertex, parent);
         end = get_time_in_seconds();
         t_graphblas_level[run] = (end - start) * 1e6;
+    }
 
+    graphblas_multisource_parent_bfs(csr, gb_matrix, sources, num_sources, parent);
+    for (int run = 0; run < num_runs; run++) {
         start = get_time_in_seconds();
-        graphblas_multisource_level_bfs(csr, gb_matrix, sources, num_sources, level);
+        graphblas_multisource_parent_bfs(csr, gb_matrix, sources, num_sources, parent);
         end = get_time_in_seconds();
         t_graphblas_multisource[run] = (end - start) * 1e6;
     }
@@ -224,7 +256,7 @@ void run_benchmark(const char* graph_file) {
            average(t_classic_multisource, num_runs),
            min_value(t_classic_multisource, num_runs),
            max_value(t_classic_multisource, num_runs));
-    printf("GraphBLAS Level BFS       | %6.0f | %6.0f | %6.0f\n",
+    printf("GraphBLAS Parent BFS       | %6.0f | %6.0f | %6.0f\n",
            average(t_graphblas_level, num_runs),
            min_value(t_graphblas_level, num_runs),
            max_value(t_graphblas_level, num_runs));
@@ -234,18 +266,12 @@ void run_benchmark(const char* graph_file) {
            max_value(t_graphblas_multisource, num_runs));
 
     printf("\n Speedups \n");
-    printf("GraphBLAS Level / Classic Parent: %.2fx\n",
+    printf("GraphBLAS Parent / Classic Parent: %.2fx\n",
            average(t_classic_parent, num_runs) / average(t_graphblas_level, num_runs));
-    printf("GraphBLAS Level / Boost BGL Parent: %.2fx\n",
-           average(t_bgl_parent, num_runs) / average(t_graphblas_level, num_runs));
     printf("Boost BGL Parent / Classic Parent: %.2fx\n",
            average(t_classic_parent, num_runs) / average(t_bgl_parent, num_runs));
     printf("GraphBLAS Multisource / Classic Multisource: %.2fx\n",
            average(t_classic_multisource, num_runs) / average(t_graphblas_multisource, num_runs));
-    printf("Classic Multisource / Classic Parent: %.2fx\n",
-           average(t_classic_parent, num_runs) / average(t_classic_multisource, num_runs));
-    printf("GraphBLAS Multisource / GraphBLAS Level: %.2fx\n",
-           average(t_graphblas_level, num_runs) / average(t_graphblas_multisource, num_runs));
 
     graphblas_free_matrix(gb_matrix);
 

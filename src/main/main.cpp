@@ -45,10 +45,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    int step = csr->n / num_sources;
-    for (int i = 0; i < num_sources; i++) {
-        sources[i] = i * step;
-    }
+    find_top_degree_vertices(g, num_sources, sources);
 
     printf("Sources for multisource BFS: ");
     for (int i = 0; i < num_sources; i++) {
@@ -131,7 +128,9 @@ int main(int argc, char* argv[]) {
 
     printf("\n Boost BGL Parent BFS \n");
 
-    for (int i = 0; i < csr->n; i++) parent[i] = -1;
+    for (int i = 0; i < csr->n; i++){
+        parent[i] = -1;
+    }
     parent[start_vertex] = start_vertex;
 
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -154,16 +153,16 @@ int main(int argc, char* argv[]) {
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Time: %.6f сек\n", elapsed);
 
-    printf("\n GraphBLAS Level BFS \n");
+    printf("\n GraphBLAS Parent BFS \n");
     clock_gettime(CLOCK_MONOTONIC, &start);
-    graphblas_level_bfs(csr, gb_matrix, start_vertex, level);
+    graphblas_parent_bfs(csr, gb_matrix, start_vertex, parent);
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Time: %.6f сек\n", elapsed);
 
-    printf("\n GraphBLAS Multisource Level BFS \n");
+    printf("\n GraphBLAS Multisource BFS \n");
     clock_gettime(CLOCK_MONOTONIC, &start);
-    graphblas_multisource_level_bfs(csr, gb_matrix, sources, num_sources, level);
+    graphblas_multisource_parent_bfs(csr, gb_matrix, sources, num_sources, parent);
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Time: %.6f сек\n", elapsed);
