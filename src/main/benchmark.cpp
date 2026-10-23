@@ -136,6 +136,30 @@ void run_benchmark(const char* graph_file) {
         return;
     }
 
+    typedef boost::compressed_sparse_row_graph<
+    boost::directedS, boost::no_property, boost::no_property,
+    boost::no_property, int, int> BGLGraph;
+
+    double t_bgl_build = get_time_in_seconds();
+
+    int total_edges = csr->row_ptr[csr->n];
+    std::vector<std::pair<int, int>> edge_list;
+    edge_list.reserve(total_edges);
+    for (int u = 0; u < csr->n; ++u) {
+        int row_start = csr->row_ptr[u];
+        int row_end = csr->row_ptr[u + 1];
+        for (int i = row_start; i < row_end; ++i) {
+            edge_list.push_back(std::make_pair(u, csr->col_idx[i]));
+        }
+    }
+
+    BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
+
+    std::vector<std::pair<int, int>>().swap(edge_list);
+
+    double bgl_build_elapsed = get_time_in_seconds() - t_bgl_build;
+    printf("Boost BGL: graph construction (performed once, not included in the measurements below): %.6f сек\n", bgl_build_elapsed);
+
     void* gb_matrix = NULL;
     double t_build = get_time_in_seconds();
     if (graphblas_build_matrix(csr, &gb_matrix) != 0) {
@@ -152,27 +176,6 @@ void run_benchmark(const char* graph_file) {
 
     graphblas_level_bfs(csr, gb_matrix, start_vertex, level);
     print_level_stats(level, csr->n, graph_file);
-
-    double t_bgl_build = get_time_in_seconds();
-
-    int total_edges = csr->row_ptr[csr->n];
-    std::vector<std::pair<int, int>> edge_list;
-    edge_list.reserve(total_edges);
-    for (int u = 0; u < csr->n; ++u) {
-        int row_start = csr->row_ptr[u];
-        int row_end = csr->row_ptr[u + 1];
-        for (int i = row_start; i < row_end; ++i) {
-            edge_list.push_back(std::make_pair(u, csr->col_idx[i]));
-        }
-    }
-
-    typedef boost::compressed_sparse_row_graph<
-    boost::directedS, boost::no_property, boost::no_property,
-    boost::no_property, int, int> BGLGraph;
-    BGLGraph bgl_g(boost::edges_are_sorted, edge_list.begin(), edge_list.end(), csr->n);
-
-    double bgl_build_elapsed = get_time_in_seconds() - t_bgl_build;
-    printf("Boost BGL: graph construction (performed once, not included in the measurements below): %.6f сек\n", bgl_build_elapsed);
 
     int num_runs = 10;
     double t_classic_parent[10];
@@ -193,7 +196,6 @@ void run_benchmark(const char* graph_file) {
         t_classic_parent[run] = (end - start) * 1e6;
     }
 
-
     csr_multisource_bfs(csr, sources, num_sources, parent);
     for (int run = 0; run < num_runs; run++) {
         start = get_time_in_seconds();
@@ -201,7 +203,6 @@ void run_benchmark(const char* graph_file) {
         end = get_time_in_seconds();
         t_classic_multisource[run] = (end - start) * 1e6;
     }
-
 
     for (int i = 0; i < csr->n; i++) parent[i] = -1;
     parent[start_vertex] = start_vertex;
