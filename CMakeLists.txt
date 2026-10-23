@@ -4,18 +4,15 @@ project(GraphBFS VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Настройки для C++ (нужно для Boost)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Принудительно включаем максимальную оптимизацию -O3 для GCC и Clang
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-O3)
     add_definitions(-DNDEBUG)
     message(STATUS "Compiler optimization forced to: -O3")
 endif()
 
-# Современный поиск Boost (отключаем устаревшую политику CMP0167 для новых CMake)
 if(POLICY CMP0167)
     cmake_policy(SET CMP0167 OLD)
 endif()
@@ -25,11 +22,9 @@ find_package(Boost REQUIRED)
 if(Boost_FOUND)
     message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
 else()
-    # Альтернативный вариант, если FindBoost полностью заблокирован в системе
     set(Boost_INCLUDE_DIRS "/usr/include")
 endif()
 
-# Поиск GraphBLAS (без find_package)
 find_path(GRAPHBLAS_INCLUDE_DIR
     NAMES GraphBLAS.h
     PATHS /usr/local/include/suitesparse /usr/include/suitesparse /usr/local/include /usr/include
@@ -71,7 +66,6 @@ set(TEST_UTILS_SOURCES
     ${TESTS_DIR}/test_utils.c
 )
 
-# 1. Основной исполняемый файл
 add_executable(bfs_analysis
     ${MAIN_DIR}/main.cpp
     ${UTILS_SOURCES}
@@ -91,7 +85,6 @@ target_link_libraries(bfs_analysis
     pthread
 )
 
-# 2. Бенчмарк
 add_executable(bfs_benchmark
     ${MAIN_DIR}/benchmark.cpp
     ${UTILS_SOURCES}
@@ -102,7 +95,7 @@ add_executable(bfs_benchmark
 target_include_directories(bfs_benchmark PRIVATE
     ${MAIN_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО, чтобы бенчмарк видел Boost
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(bfs_benchmark
@@ -111,7 +104,7 @@ target_link_libraries(bfs_benchmark
     pthread
 )
 
-# Тесты
+
 enable_testing()
 
 add_executable(test_classic_bfs
@@ -125,7 +118,7 @@ target_include_directories(test_classic_bfs PRIVATE
     ${MAIN_DIR}
     ${TESTS_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(test_classic_bfs
@@ -144,7 +137,7 @@ target_include_directories(test_graphblas_bfs PRIVATE
     ${MAIN_DIR}
     ${TESTS_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(test_graphblas_bfs
@@ -165,7 +158,7 @@ target_include_directories(test_comparison PRIVATE
     ${MAIN_DIR}
     ${TESTS_DIR}
     ${GRAPHBLAS_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS} # <- ДОБАВЛЕНО для тестов
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(test_comparison
@@ -174,7 +167,6 @@ target_link_libraries(test_comparison
     pthread
 )
 
-# Добавление тестов в CTest
 add_test(NAME ClassicBFS COMMAND test_classic_bfs)
 add_test(NAME GraphBLASBFS COMMAND test_graphblas_bfs)
 add_test(NAME Comparison COMMAND test_comparison)
