@@ -9,7 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-O3)
-    add_definitions(-DNDEBUG)
     message(STATUS "Compiler optimization forced to: -O3")
 endif()
 
@@ -104,6 +103,8 @@ target_link_libraries(bfs_benchmark
     pthread
 )
 
+target_compile_definitions(bfs_analysis PRIVATE NDEBUG)
+target_compile_definitions(bfs_benchmark PRIVATE NDEBUG)
 
 enable_testing()
 

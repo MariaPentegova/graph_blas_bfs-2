@@ -172,6 +172,6 @@ int main() {
     test_classic_parent_bfs_correctness();
     test_classic_multisource_bfs_correctness();
 
-    printf("All Tests Classic BFS [assed!\n");
+    printf("All Tests Classic BFS passed!\n");
     return 0;
 }
